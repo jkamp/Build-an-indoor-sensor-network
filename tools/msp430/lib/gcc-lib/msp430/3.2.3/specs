@@ -1,0 +1,112 @@
+*asm:
+
+
+*asm_debug:
+
+
+*asm_final:
+
+
+*asm_options:
+%a %Y %{c:%W{o*}%{!o*:-o %w%b%O}}%{!c:-o %d%w%u%O}
+
+*invoke_as:
+%{!S:-o %{|!pipe:%g.s} |
+ as %(asm_options) %{!pipe:%g.s} %A }
+
+*cpp:
+%{!mmcu*|mmcu=msp1:%(cpp_msp1)} %{mmcu=msp2:%(cpp_msp2) -DMSP430_HAS_HWMUL} %{mmcu=msp430x110:%(cpp_msp1) -D__MSP430_110__} %{mmcu=msp430x112:%(cpp_msp1) -D__MSP430_112__} %{mmcu=msp430x1101:%(cpp_msp1) -D__MSP430_1101__} %{mmcu=msp430x1111:%(cpp_msp1) -D__MSP430_1111__} %{mmcu=msp430x1121:%(cpp_msp1) -D__MSP430_1121__} %{mmcu=msp430x1122:%(cpp_msp1) -D__MSP430_1122__} %{mmcu=msp430x1132:%(cpp_msp1) -D__MSP430_1132__} %{mmcu=msp430x122:%(cpp_msp1) -D__MSP430_122__} %{mmcu=msp430x123:%(cpp_msp1) -D__MSP430_123__} %{mmcu=msp430x1222:%(cpp_msp1) -D__MSP430_1222__} %{mmcu=msp430x1232:%(cpp_msp1) -D__MSP430_1232__} %{mmcu=msp430x133:%(cpp_msp1) -D__MSP430_133__} %{mmcu=msp430x135:%(cpp_msp1) -D__MSP430_135__} %{mmcu=msp430x1331:%(cpp_msp1) -D__MSP430_1331__} %{mmcu=msp430x1351:%(cpp_msp1) -D__MSP430_1351__} %{mmcu=msp430x147:%(cpp_msp2) -D__MSP430_147__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x148:%(cpp_msp2) -D__MSP430_148__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x149:%(cpp_msp2) -D__MSP430_149__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x1471:%(cpp_msp2) -D__MSP430_1471__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x1481:%(cpp_msp2) -D__MSP430_1481__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x1491:%(cpp_msp2) -D__MSP430_1491__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x155:%(cpp_msp1) -D__MSP430_155__} %{mmcu=msp430x156:%(cpp_msp1) -D__MSP430_156__} %{mmcu=msp430x157:%(cpp_msp1) -D__MSP430_157__} %{mmcu=msp430x167:%(cpp_msp2) -D__MSP430_167__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x168:%(cpp_msp2) -D__MSP430_168__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x169:%(cpp_msp2) -D__MSP430_169__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x1610:%(cpp_msp2) -D__MSP430_1610__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x1611:%(cpp_msp2) -D__MSP430_1611__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x1612:%(cpp_msp2) -D__MSP430_1612__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x2001:%(cpp_msp1) -D__MSP430_2001__} %{mmcu=msp430x2011:%(cpp_msp1) -D__MSP430_2011__} %{mmcu=msp430x2002:%(cpp_msp1) -D__MSP430_2002__} %{mmcu=msp430x2012:%(cpp_msp1) -D__MSP430_2012__} %{mmcu=msp430x2003:%(cpp_msp1) -D__MSP430_2003__} %{mmcu=msp430x2013:%(cpp_msp1) -D__MSP430_2013__} %{mmcu=msp430x2101:%(cpp_msp1) -D__MSP430_2101__} %{mmcu=msp430x2111:%(cpp_msp1) -D__MSP430_2111__} %{mmcu=msp430x2121:%(cpp_msp1) -D__MSP430_2121__} %{mmcu=msp430x2131:%(cpp_msp1) -D__MSP430_2131__} %{mmcu=msp430x2232:%(cpp_msp1) -D__MSP430_2232__} %{mmcu=msp430x2252:%(cpp_msp1) -D__MSP430_2252__} %{mmcu=msp430x2272:%(cpp_msp1) -D__MSP430_2272__} %{mmcu=msp430x2234:%(cpp_msp1) -D__MSP430_2234__} %{mmcu=msp430x2254:%(cpp_msp1) -D__MSP430_2254__} %{mmcu=msp430x2274:%(cpp_msp1) -D__MSP430_2274__} %{mmcu=msp430x311:%(cpp_msp1) -D__MSP430_311__} %{mmcu=msp430x312:%(cpp_msp1) -D__MSP430_312__} %{mmcu=msp430x313:%(cpp_msp1) -D__MSP430_313__} %{mmcu=msp430x314:%(cpp_msp1) -D__MSP430_314__} %{mmcu=msp430x315:%(cpp_msp1) -D__MSP430_315__} %{mmcu=msp430x323:%(cpp_msp1) -D__MSP430_323__} %{mmcu=msp430x325:%(cpp_msp1) -D__MSP430_325__} %{mmcu=msp430x336:%(cpp_msp2) -D__MSP430_336__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x337:%(cpp_msp2) -D__MSP430_337__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x412:%(cpp_msp1) -D__MSP430_412__} %{mmcu=msp430x413:%(cpp_msp1) -D__MSP430_413__} %{mmcu=msp430x415:%(cpp_msp1) -D__MSP430_415__} %{mmcu=msp430x417:%(cpp_msp1) -D__MSP430_417__} %{mmcu=msp430x423:%(cpp_msp2) -D__MSP430_423__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x425:%(cpp_msp2) -D__MSP430_425__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x427:%(cpp_msp2) -D__MSP430_427__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x4250:%(cpp_msp1) -D__MSP430_4250__} %{mmcu=msp430x4260:%(cpp_msp1) -D__MSP430_4260__} %{mmcu=msp430x4270:%(cpp_msp1) -D__MSP430_4270__} %{mmcu=msp430xE423:%(cpp_msp2) -D__MSP430_E423__ -DMSP430_HAS_HWMUL} %{mmcu=msp430xE425:%(cpp_msp2) -D__MSP430_E425__ -DMSP430_HAS_HWMUL} %{mmcu=msp430xE427:%(cpp_msp2) -D__MSP430_E427__ -DMSP430_HAS_HWMUL} %{mmcu=msp430xW423:%(cpp_msp1) -D__MSP430_W423__} %{mmcu=msp430xW425:%(cpp_msp1) -D__MSP430_W425__} %{mmcu=msp430xW427:%(cpp_msp1) -D__MSP430_W427__} %{mmcu=msp430xG437:%(cpp_msp1) -D__MSP430_G437__} %{mmcu=msp430xG438:%(cpp_msp1) -D__MSP430_G438__} %{mmcu=msp430xG439:%(cpp_msp1) -D__MSP430_G439__} %{mmcu=msp430x435:%(cpp_msp1) -D__MSP430_435__} %{mmcu=msp430x436:%(cpp_msp1) -D__MSP430_436__} %{mmcu=msp430x437:%(cpp_msp1) -D__MSP430_437__} %{mmcu=msp430x447:%(cpp_msp2) -D__MSP430_447__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x448:%(cpp_msp2) -D__MSP430_448__ -DMSP430_HAS_HWMUL} %{mmcu=msp430x449:%(cpp_msp2) -D__MSP430_449__ -DMSP430_HAS_HWMUL} %{mmcu=msp430xG4616:%(cpp_msp2) -D__MSP430_G4616__ -D__MSP430X__ -DMSP430_HAS_HWMUL} %{mmcu=msp430xG4617:%(cpp_msp2) -D__MSP430_G4617__ -D__MSP430X__ -DMSP430_HAS_HWMUL} %{mmcu=msp430xG4618:%(cpp_msp2) -D__MSP430_G4618__ -D__MSP430X__ -DMSP430_HAS_HWMUL} %{mmcu=msp430xG4619:%(cpp_msp2) -D__MSP430_G4619__ -D__MSP430X__ -DMSP430_HAS_HWMUL} %{mint8:-D__SIZE_TYPE__=long\ unsigned\ int -D__PTRDIFF_TYPE__=long -D__INT_MAX__=127} %{!mint*:-D__SIZE_TYPE__=unsigned\ int -D__PTRDIFF_TYPE__=int -D__INT_MAX__=32767} %{posix:-D_POSIX_SOURCE} %{mIAR:-D_IAR_ASSEMBLER_}
+
+*cpp_options:
+%(cpp_unique_options) %{std*} %{d*} %{W*} %{w} %{pedantic*} %{fshow-column} %{fno-show-column} %{fsigned-char&funsigned-char} %{fleading-underscore} %{fno-leading-underscore} %{fno-operator-names} %{ftabstop=*}
+
+*cpp_unique_options:
+%{C:%{!E:%eGNU C does not support -C without using -E}} %{nostdinc*} %{C} %{v} %{I*} %{P} %{$} %I %{MD:-MD %{!o:%b.d}%{o*:%.d%*}} %{MMD:-MMD %{!o:%b.d}%{o*:%.d%*}} %{M} %{MM} %{MF*} %{MG} %{MP} %{MQ*} %{MT*} %{!E:%{!M:%{!MM:%{MD|MMD:%{o*:-MQ %*}}}}} %{!no-gcc:-D__GNUC__=%v1 -D__GNUC_MINOR__=%v2 -D__GNUC_PATCHLEVEL__=%v3 -D__GXX_ABI_VERSION=102} %{!undef:%{!ansi:%{!std=*:%p}%{std=gnu*:%p}} %P} %{trigraphs} %{Os:-D__OPTIMIZE_SIZE__} %{O*:%{!O0:-D__OPTIMIZE__}} %{fno-inline|O0|!O*:-D__NO_INLINE__} %{ffast-math:-D__FAST_MATH__} %{ffreestanding:-D__STDC_HOSTED__=0} %{fno-hosted:-D__STDC_HOSTED__=0} %{!ffreestanding:%{!fno-hosted:-D__STDC_HOSTED__=1}} %{remap} %{g3:-dD} %{H} %C %{fshort-wchar:-U__WCHAR_TYPE__ -D__WCHAR_TYPE__=short\ unsigned\ int} %{D*&U*&A*} %{i*} %Z %i %{E|M|MM:%W{o*}}
+
+*trad_capable_cpp:
+%{traditional|ftraditional|traditional-cpp:trad}cpp0
+
+*cc1:
+%{profile:-p}
+
+*cc1_options:
+%{pg:%{fomit-frame-pointer:%e-pg and -fomit-frame-pointer are incompatible}} %1 %{!Q:-quiet} -dumpbase %B %{d*} %{m*} %{a*} %{g*} %{O*} %{W*} %{w} %{pedantic*} %{std*} %{ansi} %{traditional} %{v:-version} %{pg:-p} %{p} %{f*} %{Qn:-fno-ident} %{--help:--help} %{--target-help:--target-help} %{!fsyntax-only:%{S:%W{o*}%{!o*:-o %b.s}}} %{fsyntax-only:-o %j} %{-param*}
+
+*cc1plus:
+
+
+*link_gcc_c_sequence:
+%G %L %G
+
+*endfile:
+
+
+*link:
+%{!mmcu*:-m msp430x110} %{mmcu=msp1:-m msp430x110} %{mmcu=msp2:-m msp430x336} %{mmcu=msp430x110:-m msp430x110 } %{mmcu=msp430x112:-m msp430x112 } %{mmcu=msp430x1101:-m msp430x1101 } %{mmcu=msp430x1111:-m msp430x1111 } %{mmcu=msp430x1121:-m msp430x1121 } %{mmcu=msp430x1122:-m msp430x1122 } %{mmcu=msp430x1132:-m msp430x1132 } %{mmcu=msp430x122:-m msp430x122 } %{mmcu=msp430x123:-m msp430x123 } %{mmcu=msp430x1222:-m msp430x1222 } %{mmcu=msp430x1232:-m msp430x1232 } %{mmcu=msp430x133:-m msp430x133 } %{mmcu=msp430x135:-m msp430x135 } %{mmcu=msp430x1331:-m msp430x1331 } %{mmcu=msp430x1351:-m msp430x1351 } %{mmcu=msp430x147:-m msp430x147 } %{mmcu=msp430x148:-m msp430x148 } %{mmcu=msp430x149:-m msp430x149 } %{mmcu=msp430x1471:-m msp430x1471 } %{mmcu=msp430x1481:-m msp430x1481 } %{mmcu=msp430x1491:-m msp430x1491 } %{mmcu=msp430x155:-m msp430x155 } %{mmcu=msp430x156:-m msp430x156 } %{mmcu=msp430x157:-m msp430x157 } %{mmcu=msp430x167:-m msp430x167 } %{mmcu=msp430x168:-m msp430x168 } %{mmcu=msp430x169:-m msp430x169 } %{mmcu=msp430x1610:-m msp430x1610 } %{mmcu=msp430x1611:-m msp430x1611 } %{mmcu=msp430x1612:-m msp430x1612 } %{mmcu=msp430x2001:-m msp430x2001 } %{mmcu=msp430x2011:-m msp430x2011 } %{mmcu=msp430x2002:-m msp430x2002 } %{mmcu=msp430x2012:-m msp430x2012 } %{mmcu=msp430x2003:-m msp430x2003 } %{mmcu=msp430x2013:-m msp430x2013 } %{mmcu=msp430x2101:-m msp430x2101 } %{mmcu=msp430x2111:-m msp430x2111 } %{mmcu=msp430x2121:-m msp430x2121 } %{mmcu=msp430x2131:-m msp430x2131 } %{mmcu=msp430x2232:-m msp430x2232 } %{mmcu=msp430x2252:-m msp430x2252 } %{mmcu=msp430x2272:-m msp430x2272 } %{mmcu=msp430x2234:-m msp430x2234 } %{mmcu=msp430x2254:-m msp430x2254 } %{mmcu=msp430x2274:-m msp430x2274 } %{mmcu=msp430x311:-m msp430x311 } %{mmcu=msp430x312:-m msp430x312 } %{mmcu=msp430x313:-m msp430x313 } %{mmcu=msp430x314:-m msp430x314 } %{mmcu=msp430x315:-m msp430x315 } %{mmcu=msp430x323:-m msp430x323 } %{mmcu=msp430x325:-m msp430x325 } %{mmcu=msp430x336:-m msp430x336 } %{mmcu=msp430x337:-m msp430x337 } %{mmcu=msp430x412:-m msp430x412 } %{mmcu=msp430x413:-m msp430x413 } %{mmcu=msp430x415:-m msp430x415 } %{mmcu=msp430x417:-m msp430x417 } %{mmcu=msp430x423:-m msp430x423 } %{mmcu=msp430x425:-m msp430x425 } %{mmcu=msp430x427:-m msp430x427 } %{mmcu=msp430x4250:-m msp430x4250 } %{mmcu=msp430x4260:-m msp430x4260 } %{mmcu=msp430x4270:-m msp430x4270 } %{mmcu=msp430xE423:-m msp430xE423 } %{mmcu=msp430xE425:-m msp430xE425 } %{mmcu=msp430xE427:-m msp430xE427 } %{mmcu=msp430xW423:-m msp430xW423 } %{mmcu=msp430xW425:-m msp430xW425 } %{mmcu=msp430xW427:-m msp430xW427 } %{mmcu=msp430xG437:-m msp430xG437 } %{mmcu=msp430xG438:-m msp430xG438 } %{mmcu=msp430xG439:-m msp430xG439 } %{mmcu=msp430x435:-m msp430x435 } %{mmcu=msp430x436:-m msp430x436 } %{mmcu=msp430x437:-m msp430x437 } %{mmcu=msp430x447:-m msp430x447 } %{mmcu=msp430x448:-m msp430x448 } %{mmcu=msp430x449:-m msp430x449 } %{mmcu=msp430xG4616:-m msp430xG4616 } %{mmcu=msp430xG4617:-m msp430xG4617 } %{mmcu=msp430xG4618:-m msp430xG4618 } %{mmcu=msp430xG4619:-m msp430xG4619 }
+
+*lib:
+%{*:-lc }
+
+*libgcc:
+%{*: -lgcc }
+
+*startfile:
+%(crt_binutils)
+
+*switches_need_spaces:
+
+
+*predefines:
+-DMSP430
+
+*cross_compile:
+1
+
+*version:
+3.2.3
+
+*multilib:
+. !mmcu=msp1 !mmcu=msp2;msp1 mmcu=msp1 !mmcu=msp2;msp2 !mmcu=msp1 mmcu=msp2;
+
+*multilib_defaults:
+mmcu=msp430x110
+
+*multilib_extra:
+
+
+*multilib_matches:
+mmcu=msp430x110 mmcu=msp1;mmcu=msp430x112 mmcu=msp1;mmcu=msp430x1101 mmcu=msp1;mmcu=msp430x1111 mmcu=msp1;mmcu=msp430x1121 mmcu=msp1;mmcu=msp430x1122 mmcu=msp1;mmcu=msp430x1132 mmcu=msp1;mmcu=msp430x122 mmcu=msp1;mmcu=msp430x123 mmcu=msp1;mmcu=msp430x1222 mmcu=msp1;mmcu=msp430x1232 mmcu=msp1;mmcu=msp430x133 mmcu=msp1;mmcu=msp430x135 mmcu=msp1;mmcu=msp430x1331 mmcu=msp1;mmcu=msp430x1351 mmcu=msp1;mmcu=msp430x147 mmcu=msp2;mmcu=msp430x148 mmcu=msp2;mmcu=msp430x149 mmcu=msp2;mmcu=msp430x1471 mmcu=msp2;mmcu=msp430x1481 mmcu=msp2;mmcu=msp430x1491 mmcu=msp2;mmcu=msp430x155 mmcu=msp1;mmcu=msp430x156 mmcu=msp1;mmcu=msp430x157 mmcu=msp1;mmcu=msp430x167 mmcu=msp2;mmcu=msp430x168 mmcu=msp2;mmcu=msp430x169 mmcu=msp2;mmcu=msp430x1610 mmcu=msp2;mmcu=msp430x1611 mmcu=msp2;mmcu=msp430x1612 mmcu=msp2;mmcu=msp430x2001 mmcu=msp1;mmcu=msp430x2011 mmcu=msp1;mmcu=msp430x2002 mmcu=msp1;mmcu=msp430x2012 mmcu=msp1;mmcu=msp430x2003 mmcu=msp1;mmcu=msp430x2013 mmcu=msp1;mmcu=msp430x2101 mmcu=msp1;mmcu=msp430x2111 mmcu=msp1;mmcu=msp430x2121 mmcu=msp1;mmcu=msp430x2131 mmcu=msp1;mmcu=msp430x2232 mmcu=msp1;mmcu=msp430x2252 mmcu=msp1;mmcu=msp430x2272 mmcu=msp1;mmcu=msp430x2234 mmcu=msp1;mmcu=msp430x2254 mmcu=msp1;mmcu=msp430x2274 mmcu=msp1;mmcu=msp430x311 mmcu=msp1;mmcu=msp430x312 mmcu=msp1;mmcu=msp430x313 mmcu=msp1;mmcu=msp430x314 mmcu=msp1;mmcu=msp430x315 mmcu=msp1;mmcu=msp430x323 mmcu=msp1;mmcu=msp430x325 mmcu=msp1;mmcu=msp430x336 mmcu=msp2;mmcu=msp430x337 mmcu=msp2;mmcu=msp430x412 mmcu=msp1;mmcu=msp430x413 mmcu=msp1;mmcu=msp430x415 mmcu=msp1;mmcu=msp430x417 mmcu=msp1;mmcu=msp430x423 mmcu=msp2;mmcu=msp430x425 mmcu=msp2;mmcu=msp430x427 mmcu=msp2;mmcu=msp430x4250 mmcu=msp1;mmcu=msp430x4260 mmcu=msp1;mmcu=msp430x4270 mmcu=msp1;mmcu=msp430xE423 mmcu=msp2;mmcu=msp430xE425 mmcu=msp2;mmcu=msp430xE427 mmcu=msp2;mmcu=msp430xW423 mmcu=msp1;mmcu=msp430xW425 mmcu=msp1;mmcu=msp430xW427 mmcu=msp1;mmcu=msp430xG437 mmcu=msp1;mmcu=msp430xG438 mmcu=msp1;mmcu=msp430xG439 mmcu=msp1;mmcu=msp430x435 mmcu=msp1;mmcu=msp430x436 mmcu=msp1;mmcu=msp430x437 mmcu=msp1;mmcu=msp430x447 mmcu=msp2;mmcu=msp430x448 mmcu=msp2;mmcu=msp430x449 mmcu=msp2;mmcu=msp430xG4616 mmcu=msp2;mmcu=msp430xG4617 mmcu=msp2;mmcu=msp430xG4618 mmcu=msp2;mmcu=msp430xG4619 mmcu=msp2;mmcu=msp1 mmcu=msp1;mmcu=msp2 mmcu=msp2;
+
+*multilib_exclusions:
+
+
+*multilib_options:
+mmcu=msp1/mmcu=msp2
+
+*linker:
+msp430-ld
+
+*link_libgcc:
+%D
+
+*md_exec_prefix:
+
+
+*md_startfile_prefix:
+
+
+*md_startfile_prefix_1:
+
+
+*cpp_msp1:
+ -DMSP430_NO_HW_MUL 
+
+*cpp_msp2:
+ -DMSP430_HAS_HW_MUL 
+
+*crt_binutils:
+%{!mmcu=*|mmcu=msp430x110|mmcu=msp1:crt430x110.o%s} %{mmcu=msp430x112:crt430x112.o%s} %{mmcu=msp430x1101:crt430x1101.o%s} %{mmcu=msp430x1111:crt430x1111.o%s} %{mmcu=msp430x1121:crt430x1121.o%s} %{mmcu=msp430x1122:crt430x1122.o%s} %{mmcu=msp430x1132:crt430x1132.o%s} %{mmcu=msp430x122:crt430x122.o%s} %{mmcu=msp430x123:crt430x123.o%s} %{mmcu=msp430x1222:crt430x1222.o%s} %{mmcu=msp430x1232:crt430x1232.o%s} %{mmcu=msp430x133:crt430x133.o%s} %{mmcu=msp430x135:crt430x135.o%s} %{mmcu=msp430x1331:crt430x1331.o%s} %{mmcu=msp430x1351:crt430x1351.o%s} %{mmcu=msp430x147:crt430x147.o%s} %{mmcu=msp430x148:crt430x148.o%s} %{mmcu=msp430x149:crt430x149.o%s} %{mmcu=msp430x1471:crt430x1471.o%s} %{mmcu=msp430x1481:crt430x1481.o%s} %{mmcu=msp430x1491:crt430x1491.o%s} %{mmcu=msp430x155:crt430x155.o%s} %{mmcu=msp430x156:crt430x156.o%s} %{mmcu=msp430x157:crt430x157.o%s} %{mmcu=msp430x167:crt430x167.o%s} %{mmcu=msp430x168:crt430x168.o%s} %{mmcu=msp430x169:crt430x169.o%s} %{mmcu=msp430x1610:crt430x1610.o%s} %{mmcu=msp430x1611:crt430x1611.o%s} %{mmcu=msp430x1612:crt430x1612.o%s} %{mmcu=msp430x2001:crt430x2001.o%s} %{mmcu=msp430x2011:crt430x2011.o%s} %{mmcu=msp430x2002:crt430x2002.o%s} %{mmcu=msp430x2012:crt430x2012.o%s} %{mmcu=msp430x2003:crt430x2003.o%s} %{mmcu=msp430x2013:crt430x2013.o%s} %{mmcu=msp430x2101:crt430x2101.o%s} %{mmcu=msp430x2111:crt430x2111.o%s} %{mmcu=msp430x2121:crt430x2121.o%s} %{mmcu=msp430x2131:crt430x2131.o%s} %{mmcu=msp430x2232:crt430x2232.o%s} %{mmcu=msp430x2252:crt430x2252.o%s} %{mmcu=msp430x2272:crt430x2272.o%s} %{mmcu=msp430x2234:crt430x2234.o%s} %{mmcu=msp430x2254:crt430x2254.o%s} %{mmcu=msp430x2274:crt430x2274.o%s} %{mmcu=msp430x311:crt430x311.o%s} %{mmcu=msp430x312:crt430x312.o%s} %{mmcu=msp430x313:crt430x313.o%s} %{mmcu=msp430x314:crt430x314.o%s} %{mmcu=msp430x315:crt430x315.o%s} %{mmcu=msp430x323:crt430x323.o%s} %{mmcu=msp430x325:crt430x325.o%s} %{mmcu=msp430x336|mmcu=msp2:crt430x336.o%s} %{mmcu=msp430x337:crt430x337.o%s} %{mmcu=msp430x412:crt430x412.o%s} %{mmcu=msp430x413:crt430x413.o%s} %{mmcu=msp430x415:crt430x415.o%s} %{mmcu=msp430x417:crt430x417.o%s} %{mmcu=msp430x423:crt430x423.o%s} %{mmcu=msp430x425:crt430x425.o%s} %{mmcu=msp430x427:crt430x427.o%s} %{mmcu=msp430x4250:crt430x4250.o%s} %{mmcu=msp430x4260:crt430x4260.o%s} %{mmcu=msp430x4270:crt430x4270.o%s} %{mmcu=msp430xE423:crt430xE423.o%s} %{mmcu=msp430xE425:crt430xE425.o%s} %{mmcu=msp430xE427:crt430xE427.o%s} %{mmcu=msp430xW423:crt430xW423.o%s} %{mmcu=msp430xW425:crt430xW425.o%s} %{mmcu=msp430xW427:crt430xW427.o%s} %{mmcu=msp430xG437:crt430xG437.o%s} %{mmcu=msp430xG438:crt430xG438.o%s} %{mmcu=msp430xG439:crt430xG439.o%s} %{mmcu=msp430x435:crt430x435.o%s} %{mmcu=msp430x436:crt430x436.o%s} %{mmcu=msp430x437:crt430x437.o%s} %{mmcu=msp430x447:crt430x447.o%s} %{mmcu=msp430x448:crt430x448.o%s} %{mmcu=msp430x449:crt430x449.o%s} %{mmcu=msp430xG4616:crt430xG4616.o%s} %{mmcu=msp430xG4617:crt430xG4617.o%s} %{mmcu=msp430xG4618:crt430xG4618.o%s} %{mmcu=msp430xG4619:crt430xG4619.o%s}
+
+*link_command:
+%{!fsyntax-only:%{!c:%{!M:%{!MM:%{!E:%{!S:    %(linker) %l %X %{o*} %{A} %{d} %{e*} %{m} %{N} %{n} %{r} %{s} %{t}    %{u*} %{x} %{z} %{Z} %{!A:%{!nostdlib:%{!nostartfiles:%S}}}    %{static:} %{L*} %(link_libgcc) %o %{!nostdlib:%{!nodefaultlibs:%(link_gcc_c_sequence)}}    %{!A:%{!nostdlib:%{!nostartfiles:%E}}} %{T*} }}}}}}
+

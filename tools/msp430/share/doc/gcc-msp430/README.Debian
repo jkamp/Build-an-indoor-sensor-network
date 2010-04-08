@@ -1,0 +1,6 @@
+gcc-msp430 for Debian
+---------------------
+
+Derived from CVS sources from mspgcc.sf.net
+
+ -- Neil Wyper <nwyper@gmail.com>, Fri, 14 Apr 2006 20:35:55 -0600

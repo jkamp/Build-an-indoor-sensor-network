@@ -1,0 +1,398 @@
+[19:49:14 - AWT-EventQueue-0] [GUI.java:2697] [INFO] - Loading external tools user settings from: /external_tools_linux.config
+[19:50:26 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[19:50:32 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[19:50:34 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[19:50:35 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[19:50:51 - Thread-1] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270662651907
+[19:51:13 - Thread-1] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270662673461	Duration: 21554 ms
+[20:07:43 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[20:09:49 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[20:09:51 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[20:09:53 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[20:09:55 - Thread-3] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270663795832
+[20:10:28 - Thread-3] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270663828961	Duration: 33129 ms
+[20:43:51 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[20:43:56 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[20:44:05 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[20:44:19 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/src/net/reliable_flood_neighbor_req.c (323 lines)
+[20:45:10 - Thread-7] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270665910089
+[20:45:21 - Thread-7] [Simulation.java:280] [FATAL] - Simulation stopped due to error: MSPSim requested simulation stop
+java.lang.RuntimeException: MSPSim requested simulation stop
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:327)
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:314)
+	at se.sics.cooja.motes.AbstractWakeupMote$1.execute(AbstractWakeupMote.java:45)
+	at se.sics.cooja.Simulation.run(Simulation.java:273)
+	at java.lang.Thread.run(Thread.java:636)
+[20:45:23 - Thread-7] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270665923308	Duration: 13219 ms
+[20:46:15 - Thread-10] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270665975457
+[20:46:19 - Thread-10] [Simulation.java:280] [FATAL] - Simulation stopped due to error: MSPSim requested simulation stop
+java.lang.RuntimeException: MSPSim requested simulation stop
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:327)
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:314)
+	at se.sics.cooja.motes.AbstractWakeupMote$1.execute(AbstractWakeupMote.java:45)
+	at se.sics.cooja.Simulation.run(Simulation.java:273)
+	at java.lang.Thread.run(Thread.java:636)
+[20:46:22 - Thread-10] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270665982676	Duration: 7219 ms
+[20:46:53 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/dev/uart1-putchar.c (9 lines)
+[20:46:55 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/dev/uart1.c (237 lines)
+[20:46:57 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/watchdog.c (80 lines)
+[20:47:01 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/dev/uart1.c (237 lines)
+[20:47:04 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/lib/ringbuf.c (107 lines)
+[20:47:15 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/dev/uart1.c (237 lines)
+[20:47:25 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/lib/ringbuf.c (107 lines)
+[20:47:31 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/dev/uart1.c (237 lines)
+[20:47:33 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/dev/uart1-putchar.c (9 lines)
+[20:47:34 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/dev/uart1.c (237 lines)
+[20:47:38 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/lib/ringbuf.c (107 lines)
+[20:47:43 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/dev/uart1.c (237 lines)
+[20:47:48 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/dev/uart1-putchar.c (9 lines)
+[20:47:58 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/dev/uart1.c (237 lines)
+[20:48:02 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/src/net/reliable_flood_neighbor_req.c (323 lines)
+[20:48:10 - Thread-12] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270666090299
+[20:48:10 - Thread-12] [Simulation.java:280] [FATAL] - Simulation stopped due to error: MSPSim requested simulation stop
+java.lang.RuntimeException: MSPSim requested simulation stop
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:327)
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:314)
+	at se.sics.cooja.motes.AbstractWakeupMote$1.execute(AbstractWakeupMote.java:45)
+	at se.sics.cooja.Simulation.run(Simulation.java:273)
+	at java.lang.Thread.run(Thread.java:636)
+[20:48:11 - Thread-12] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270666091474	Duration: 1175 ms
+[20:49:32 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[20:49:37 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[20:49:43 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[20:49:44 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[20:49:46 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[20:50:18 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/src/net/reliable_flood_neighbor_req.c (323 lines)
+[20:51:14 - Thread-17] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270666274072
+[20:51:26 - Thread-17] [Simulation.java:280] [FATAL] - Simulation stopped due to error: MSPSim requested simulation stop
+java.lang.RuntimeException: MSPSim requested simulation stop
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:327)
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:314)
+	at se.sics.cooja.motes.AbstractWakeupMote$1.execute(AbstractWakeupMote.java:45)
+	at se.sics.cooja.Simulation.run(Simulation.java:273)
+	at java.lang.Thread.run(Thread.java:636)
+[20:51:35 - Thread-17] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270666295161	Duration: 21089 ms
+[20:51:59 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/net/rime/abc.c (101 lines)
+[20:52:02 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/net/rime/chameleon.c (163 lines)
+[20:52:09 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/net/rime/rime.c (156 lines)
+[20:52:13 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/net/mac/csma.c (216 lines)
+[20:52:14 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/net/mac/xmac.c (943 lines)
+[20:52:15 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/dev/cc2420.c (770 lines)
+[20:52:21 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/sys/process.c (382 lines)
+[20:52:33 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/platform/sky/contiki-sky-main.c (476 lines)
+[20:52:33 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/watchdog.c (80 lines)
+[20:52:34 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/platform/sky/contiki-sky-main.c (476 lines)
+[20:52:34 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/sys/process.c (382 lines)
+[20:52:43 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/dev/serial-line.c (137 lines)
+[20:52:48 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/lib/ringbuf.c (107 lines)
+[20:52:52 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/dev/serial-line.c (137 lines)
+[20:52:58 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/lib/ringbuf.c (107 lines)
+[20:53:04 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/dev/serial-line.c (137 lines)
+[20:53:07 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/lib/ringbuf.c (107 lines)
+[20:53:11 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/dev/serial-line.c (137 lines)
+[20:53:14 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/sys/process.c (382 lines)
+[20:53:24 - Thread-20] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270666404141
+[20:53:32 - Thread-20] [Simulation.java:280] [FATAL] - Simulation stopped due to error: MSPSim requested simulation stop
+java.lang.RuntimeException: MSPSim requested simulation stop
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:327)
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:314)
+	at se.sics.cooja.motes.AbstractWakeupMote$1.execute(AbstractWakeupMote.java:45)
+	at se.sics.cooja.Simulation.run(Simulation.java:273)
+	at java.lang.Thread.run(Thread.java:636)
+[20:53:33 - Thread-20] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270666413914	Duration: 9773 ms
+[20:53:39 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/src/net/reliable_flood_neighbor_req.c (323 lines)
+[21:21:01 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[21:21:06 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[21:21:07 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[21:21:11 - Thread-22] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270668071409
+[21:21:23 - Thread-24] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/platform/sky/contiki-sky-main.c (476 lines)
+[21:21:27 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/src/net/reliable_flood_neighbor_req.c (323 lines)
+[21:21:56 - Thread-22] [Simulation.java:280] [FATAL] - Simulation stopped due to error: MSPSim requested simulation stop
+java.lang.RuntimeException: MSPSim requested simulation stop
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:327)
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:314)
+	at se.sics.cooja.motes.AbstractWakeupMote$1.execute(AbstractWakeupMote.java:45)
+	at se.sics.cooja.Simulation.run(Simulation.java:273)
+	at java.lang.Thread.run(Thread.java:636)
+[21:21:58 - Thread-22] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270668118865	Duration: 47456 ms
+[21:22:41 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/dev/uart1-putchar.c (9 lines)
+[21:22:43 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/dev/uart1.c (237 lines)
+[21:22:46 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/watchdog.c (80 lines)
+[21:22:48 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/dev/uart1.c (237 lines)
+[21:22:50 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/lib/ringbuf.c (107 lines)
+[21:22:58 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/cpu/msp430/dev/uart1.c (237 lines)
+[21:23:00 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/core/lib/ringbuf.c (107 lines)
+[21:23:30 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/src/net/reliable_flood_neighbor_req.c (323 lines)
+[21:23:39 - Thread-27] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270668219619
+[21:23:39 - Thread-27] [Simulation.java:280] [FATAL] - Simulation stopped due to error: MSPSim requested simulation stop
+java.lang.RuntimeException: MSPSim requested simulation stop
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:327)
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:314)
+	at se.sics.cooja.motes.AbstractWakeupMote$1.execute(AbstractWakeupMote.java:45)
+	at se.sics.cooja.Simulation.run(Simulation.java:273)
+	at java.lang.Thread.run(Thread.java:636)
+[21:23:40 - Thread-27] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270668220962	Duration: 1343 ms
+[21:24:07 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/src/net/packet_buffer.c (180 lines)
+[21:24:13 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/src/net/reliable_flood_neighbor_req.c (323 lines)
+[21:25:21 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[21:25:26 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[21:25:28 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[21:25:30 - Thread-29] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270668330705
+[21:25:35 - Thread-30] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/third_party/contiki-2.4/platform/sky/contiki-sky-main.c (476 lines)
+[21:25:40 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/src/net/reliable_flood_neighbor_req.c (323 lines)
+[21:26:02 - Thread-29] [Simulation.java:280] [FATAL] - Simulation stopped due to error: MSPSim requested simulation stop
+java.lang.RuntimeException: MSPSim requested simulation stop
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:327)
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:314)
+	at se.sics.cooja.motes.AbstractWakeupMote$1.execute(AbstractWakeupMote.java:45)
+	at se.sics.cooja.Simulation.run(Simulation.java:273)
+	at java.lang.Thread.run(Thread.java:636)
+[21:26:03 - Thread-29] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270668363865	Duration: 33160 ms
+[21:33:11 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[21:33:15 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[21:33:17 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[21:33:29 - AWT-EventQueue-0] [CodeUI.java:213] [INFO] - Opening /home/dexter/Desktop/contiki/project/src/net/reliable_flood_neighbor_req.c (323 lines)
+[21:33:42 - Thread-34] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270668822657
+[21:33:51 - Thread-34] [Simulation.java:280] [FATAL] - Simulation stopped due to error: MSPSim requested simulation stop
+java.lang.RuntimeException: MSPSim requested simulation stop
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:327)
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:314)
+	at se.sics.cooja.motes.AbstractWakeupMote$1.execute(AbstractWakeupMote.java:45)
+	at se.sics.cooja.Simulation.run(Simulation.java:273)
+	at java.lang.Thread.run(Thread.java:636)
+[21:33:52 - Thread-34] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270668832530	Duration: 9873 ms
+[21:39:22 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[21:39:28 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[21:39:29 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[21:39:30 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[21:39:40 - Thread-38] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270669180857
+[21:39:57 - Thread-38] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270669197529	Duration: 16672 ms
+[21:44:10 - Thread-39] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270669450769
+[21:44:15 - Thread-39] [Simulation.java:280] [FATAL] - Simulation stopped due to error: null
+java.lang.NullPointerException
+	at se.sics.mspsim.core.Timer.updateTCCTL(Timer.java:499)
+	at se.sics.mspsim.core.Timer.read(Timer.java:466)
+	at se.sics.mspsim.core.MSP430Core.read(MSP430Core.java:663)
+	at se.sics.mspsim.core.MSP430Core.emulateOP(MSP430Core.java:1200)
+	at se.sics.mspsim.core.MSP430.stepMicros(MSP430.java:267)
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:341)
+	at se.sics.cooja.mspmote.MspMote.execute(MspMote.java:314)
+	at se.sics.cooja.motes.AbstractWakeupMote$1.execute(AbstractWakeupMote.java:45)
+	at se.sics.cooja.Simulation.run(Simulation.java:273)
+	at java.lang.Thread.run(Thread.java:636)
+[21:44:18 - Thread-39] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270669458122	Duration: 7353 ms
+[22:05:08 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[22:05:12 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[22:05:14 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[22:05:15 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[22:05:22 - Thread-41] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270670722225
+[22:05:42 - Thread-41] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270670742169	Duration: 19944 ms
+[22:11:40 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[22:11:44 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[22:11:46 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[22:11:47 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[22:11:54 - Thread-43] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270671114577
+[22:12:16 - Thread-43] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270671136953	Duration: 22376 ms
+[22:20:03 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[22:20:58 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[22:21:00 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[22:21:01 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[22:21:02 - Thread-45] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270671662818
+[22:21:24 - Thread-45] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270671684074	Duration: 21256 ms
+[22:44:13 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[22:44:50 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[22:44:52 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[22:44:53 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[22:44:54 - Thread-47] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270673094529
+[22:45:07 - Thread-47] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270673107321	Duration: 12792 ms
+[23:06:58 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[23:07:02 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[23:07:04 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[23:07:05 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[23:07:07 - Thread-49] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270674427394
+[23:07:25 - Thread-49] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270674445672	Duration: 18278 ms
+[02:39:16 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[02:39:20 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[02:39:22 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[02:39:23 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[02:39:29 - Thread-51] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270687169850
+[02:39:59 - Thread-51] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270687199267	Duration: 29417 ms
+[02:41:03 - Thread-53] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270687263403
+[02:41:15 - Thread-53] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270687275067	Duration: 11664 ms
+[02:44:30 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[02:44:35 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[02:44:37 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[02:44:39 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[02:44:40 - Thread-54] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270687480412
+[02:44:57 - Thread-54] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270687497796	Duration: 17384 ms
+[02:45:39 - Thread-56] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270687539604
+[02:45:40 - Thread-56] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270687540523	Duration: 919 ms
+[02:53:59 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[02:54:03 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[02:54:04 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[02:54:06 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[02:54:08 - Thread-57] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270688048860
+[02:54:27 - Thread-57] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270688067197	Duration: 18337 ms
+[03:15:27 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[03:15:30 - Thread-59] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270689330756
+[03:15:32 - Thread-59] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270689332548	Duration: 1792 ms
+[03:15:34 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[03:15:37 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[03:15:38 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[03:15:41 - Thread-60] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270689341732
+[03:15:58 - Thread-60] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270689358855	Duration: 17123 ms
+[03:20:50 - Thread-62] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270689650426
+[03:20:51 - Thread-62] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270689651348	Duration: 922 ms
+[03:24:37 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[03:24:42 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[03:24:44 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[03:24:45 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[03:24:47 - Thread-63] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270689887755
+[03:25:01 - Thread-63] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270689901115	Duration: 13360 ms
+[03:25:57 - Thread-65] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270689957364
+[03:25:57 - Thread-65] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270689957836	Duration: 472 ms
+[03:36:01 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[03:36:06 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[03:36:08 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[03:36:09 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[03:36:15 - Thread-66] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270690575916
+[03:36:29 - Thread-66] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270690589716	Duration: 13800 ms
+[03:36:44 - Thread-68] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270690604348
+[03:36:45 - Thread-68] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270690605004	Duration: 656 ms
+[03:43:40 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[03:43:45 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[03:43:46 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[03:43:48 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[03:43:50 - Thread-69] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270691030108
+[03:44:09 - Thread-69] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270691049357	Duration: 19249 ms
+[03:55:11 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[03:55:18 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[03:55:20 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[03:55:21 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[03:55:26 - Thread-71] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270691726756
+[03:55:39 - Thread-71] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270691739516	Duration: 12760 ms
+[04:14:17 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[04:14:23 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[04:14:26 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[04:14:28 - Thread-73] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270692868684
+[04:15:11 - Thread-73] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270692911037	Duration: 42353 ms
+[04:15:36 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[04:15:41 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[04:15:43 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[04:15:44 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[04:15:48 - Thread-75] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270692948076
+[04:16:10 - Thread-75] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270692970886	Duration: 22810 ms
+[04:56:09 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[04:56:14 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[04:56:17 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[04:56:18 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[04:56:24 - Thread-77] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270695384108
+[04:56:40 - Thread-77] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270695400652	Duration: 16544 ms
+[05:15:09 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[05:15:14 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[05:15:20 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[05:15:21 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[05:15:26 - Thread-79] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270696526988
+[05:15:38 - Thread-79] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270696538604	Duration: 11616 ms
+[05:15:49 - Thread-81] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270696549044
+[05:15:49 - Thread-81] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270696549413	Duration: 369 ms
+[05:26:35 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[05:26:41 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[05:26:42 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[05:26:44 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[05:26:53 - Thread-83] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270697213959
+[05:27:08 - Thread-83] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270697228965	Duration: 15006 ms
+[05:47:27 - AWT-EventQueue-0] [AbstractRadioMedium.java:182] [FATAL] - Connection source turned off radio: se.sics.cooja.mspmote.interfaces.SkyByteRadio@b2e03c
+[05:47:28 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[05:47:34 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[05:47:37 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[05:47:38 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[05:47:44 - Thread-84] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270698464861
+[05:48:02 - Thread-84] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270698482989	Duration: 18128 ms
+[05:48:11 - Thread-86] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270698491196
+[05:48:12 - Thread-86] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270698492493	Duration: 1297 ms
+[05:48:19 - Thread-87] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270698499909
+[05:48:28 - Thread-87] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270698508301	Duration: 8392 ms
+[06:24:15 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[06:24:20 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[06:24:21 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[06:24:23 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[06:24:28 - Thread-88] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270700668781
+[06:24:52 - Thread-88] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270700692274	Duration: 23493 ms
+[06:27:49 - Thread-90] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270700869741
+[06:28:06 - Thread-90] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270700886750	Duration: 17009 ms
+[06:28:48 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[06:28:52 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[06:28:54 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[06:28:56 - Thread-91] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270700936981
+[06:29:05 - Thread-91] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270700945669	Duration: 8688 ms
+[06:43:58 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[06:44:03 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[06:44:05 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[06:44:06 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[06:44:08 - Thread-92] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270701848149
+[06:44:27 - Thread-92] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270701867292	Duration: 19143 ms
+[06:46:29 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[06:46:34 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[06:46:36 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[06:46:38 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[06:46:38 - Thread-94] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270701998868
+[06:46:53 - Thread-94] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270702013884	Duration: 15016 ms
+[06:47:07 - Thread-96] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270702027005
+[06:47:07 - Thread-96] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270702027693	Duration: 688 ms
+[06:53:13 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[06:53:16 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[06:53:18 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[06:53:19 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[06:53:21 - Thread-97] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270702401189
+[06:53:41 - Thread-97] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270702421470	Duration: 20281 ms
+[06:53:44 - Thread-99] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270702424581
+[06:53:47 - Thread-99] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270702427902	Duration: 3321 ms
+[06:54:10 - Thread-100] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270702450109
+[06:54:10 - Thread-100] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270702450670	Duration: 561 ms
+[06:57:12 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[06:57:16 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[06:57:18 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[06:57:19 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[06:57:21 - Thread-101] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270702641016
+[06:57:38 - Thread-101] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270702658958	Duration: 17942 ms
+[06:57:41 - Thread-103] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270702661061
+[06:57:41 - Thread-103] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270702661678	Duration: 617 ms
+[06:58:53 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[06:58:58 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[06:58:59 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[06:59:00 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[06:59:01 - Thread-104] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270702741553
+[06:59:20 - Thread-104] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270702760598	Duration: 19045 ms
+[07:16:36 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[07:16:42 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[07:16:44 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[07:16:45 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[07:16:53 - Thread-106] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270703813661
+[07:17:12 - Thread-106] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270703832985	Duration: 19324 ms
+[07:18:32 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[07:18:36 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[07:18:39 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[07:18:40 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[07:18:45 - Thread-109] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270703925181
+[07:19:05 - Thread-109] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270703945600	Duration: 20419 ms
+[07:19:28 - Thread-111] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270703968502
+[07:19:28 - Thread-111] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270703968917	Duration: 415 ms
+[07:19:55 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[07:20:01 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[07:20:02 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[07:20:03 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[07:20:05 - Thread-112] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270704005565
+[07:20:21 - Thread-112] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270704021677	Duration: 16112 ms
+[07:35:23 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[07:35:29 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[07:35:31 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[07:35:32 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[07:35:44 - Thread-115] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270704944966
+[07:36:05 - Thread-115] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270704965984	Duration: 21018 ms
+[07:39:44 - AWT-EventQueue-0] [Simulation.java:401] [INFO] - Simulation random seed: 123456
+[07:40:08 - AWT-EventQueue-0] [GUI.java:3930] [WARN] - Path is not portable: '/home/dexter/Desktop/contiki/project/src/main.sky
+[07:40:10 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[07:40:11 - AWT-EventQueue-0] [MspMote.java:264] [INFO] - Loading ELF from: /home/dexter/Desktop/contiki/project/src/main.sky
+[07:40:24 - Thread-116] [Simulation.java:246] [INFO] - Simulation main loop started, system time: 1270705224853
+[07:40:42 - Thread-116] [Simulation.java:295] [INFO] - Simulation main loop stopped, system time: 1270705242802	Duration: 17949 ms

@@ -1,4 +1,9 @@
 CN3 PROJECT
 TEAM LK
 
-As sensor networks becomes more common, our homes and workplaces can be monitored. A combination of WSNs and actuator networks can create what is sometimes referred to as smart homes. WSN might help automate our homes to improve, for example, energy consumption by adapting lighting and heating when an area is used. Problems that need to be solved include how to sense the environment and react to events but also how to configure such a system. 
+As sensor networks becomes more common, our homes and workplaces can be
+monitored. A combination of WSNs and actuator networks can create what is
+sometimes referred to as smart homes. WSN might help automate our homes to
+improve, for example, energy consumption by adapting lighting and heating when
+an area is used. Problems that need to be solved include how to sense the
+environment and react to events but also how to configure such a system. 
