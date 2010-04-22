@@ -2,8 +2,10 @@
 #define _TEAMLK_LOG_H_
 
 #ifdef TEAMLK_DEBUG
+
 #include <stdio.h>
 #include <stdlib.h>
+
 #define LOG(...) printf(__VA_ARGS__)
 
 #define TRACE(...) \
@@ -19,7 +21,6 @@
 			exit(-1); \
 		} \
 	}while(0);
-#endif
 #else /*TEAMLK_DEBUG*/
 #define LOG(...)
 #define TRACE(...)

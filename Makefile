@@ -1,6 +1,7 @@
 include src/Makefile.src
 
-CONTIKI_PROJECT = src/main
+CONTIKI_PROJECT = src/main_reg_sensor
+#CONTIKI_PROJECT = src/sync_test
 #CONTIKI_PROJECT = src/packet_buffer_unittest
 #CONTIKI_PROJECT = src/queue_buffer_unittest
 all: $(CONTIKI_PROJECT)

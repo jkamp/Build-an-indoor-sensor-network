@@ -4,6 +4,8 @@
 #include "stdint.h"
 #include "stddef.h" /* NULL */
 
+#include "string.h"
+
 #define QUEUE_BUFFER_S_HDR_SIZE (sizeof(struct queue_buffer_s)-sizeof(uint8_t))
 
 #define QUEUE_BUFFER(name, buffersize, num_items) \
@@ -28,7 +30,6 @@ struct queue_buffer {
 	struct queue_buffer_s *iterator;
 };
 
-
 void queue_buffer_init(struct queue_buffer *qb, uint8_t buffer_size, uint8_t
 		num_items, void *buffer_begin);
 
@@ -52,6 +53,9 @@ void* queue_buffer_push_back(struct queue_buffer *qb, const void *item);
 void queue_buffer_pop_front(struct queue_buffer* qb, void *item_out);
 void queue_buffer_pop_back(struct queue_buffer* qb, void *item_out);
 
+void* queue_buffer_front(struct queue_buffer* qb);
+void* queue_buffer_back(struct queue_buffer* qb);
+
 
 static inline void* 
 queue_buffer_begin(struct queue_buffer *qb);
@@ -72,6 +76,9 @@ queue_buffer_size(const struct queue_buffer *qb);
 
 static inline int 
 queue_buffer_max_size(const struct queue_buffer *qb);
+
+static inline
+void queue_buffer_copy(struct queue_buffer *to, const struct queue_buffer *from);
 
 void queue_buffer_free(struct queue_buffer *qb, void* item);
 
@@ -101,4 +108,12 @@ int queue_buffer_size(const struct queue_buffer *qb) {
 int queue_buffer_max_size(const struct queue_buffer *qb) {
 	return qb->queue_max_size;
 }
+
+void queue_buffer_copy(struct queue_buffer *to, const struct queue_buffer *from) {
+	const struct queue_buffer_s *i;
+	for(i = from->used_head; i != NULL; i = i->next) {
+		queue_buffer_push_back(to, i->data);
+	}
+}
+
 #endif

@@ -41,6 +41,9 @@
 #include "net/mac/nullmac.h"
 #include "net/rime/packetbuf.h"
 
+#include "stdio.h"
+#include "rime/timesynch.h"
+
 static const struct radio_driver *radio;
 static void (* receiver_callback)(const struct mac_driver *);
 /*---------------------------------------------------------------------------*/

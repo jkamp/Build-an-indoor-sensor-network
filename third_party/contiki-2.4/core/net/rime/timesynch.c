@@ -106,9 +106,9 @@ incoming_packet(void)
        own authority level to be one more than the sending node. */
     if(cc2420_authority_level_of_sender < authority_level) {
       adjust_offset(cc2420_time_of_departure,
-		    cc2420_time_of_arrival);
+    	    cc2420_time_of_arrival);
       if(cc2420_authority_level_of_sender + 1 != authority_level) {
-	authority_level = cc2420_authority_level_of_sender + 1;
+    authority_level = cc2420_authority_level_of_sender + 1;
       }
     }
   }

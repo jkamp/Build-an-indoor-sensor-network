@@ -1,0 +1,9 @@
+PROJECTDIRS = src \
+			  src/base \
+			  src/emergency_net
+
+include src/base/Makefile.base
+include src/emergency_net/Makefile.net
+
+
+#PROJECTDIRS+=base

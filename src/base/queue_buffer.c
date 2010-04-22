@@ -1,6 +1,4 @@
-#include "queue_buffer.h"
-
-#include "string.h"
+#include "base/queue_buffer.h"
 
 #include "base/log.h"
 
@@ -68,6 +66,7 @@ void queue_buffer_init(struct queue_buffer *qb, uint8_t buffer_size, uint8_t
 	}
 	qb->used_head = NULL;
 	qb->iterator = NULL;
+	ASSERT(qb->unused_head != NULL);
 }
 
 void* queue_buffer_alloc_back(struct queue_buffer* qb) {
@@ -118,6 +117,8 @@ void* queue_buffer_push_back(struct queue_buffer* qb, const void *item) {
 
 void queue_buffer_pop_front(struct queue_buffer* qb, void* item_out) {
 	struct queue_buffer_s *i = qb->used_head;
+	ASSERT(i != NULL);
+
 	if (item_out != NULL) {
 		memcpy(item_out, i->data, qb->buffer_size);
 	}
@@ -130,6 +131,8 @@ void queue_buffer_pop_front(struct queue_buffer* qb, void* item_out) {
 void queue_buffer_pop_back(struct queue_buffer* qb, void* item_out) {
 	struct queue_buffer_s *i = qb->used_head;
 	struct queue_buffer_s *prev = NULL;
+
+	ASSERT(i != NULL);
 
 	while (i->next != NULL) {
 		prev = i;
@@ -156,15 +159,20 @@ void queue_buffer_free(struct queue_buffer* qb, void* item) {
 	
 	for(; i != NULL; i = i->next) {
 		if ( i->data == item ){
-			if (prev != NULL) {
+			if (prev == NULL) {
+				qb->used_head = qb->used_head->next;
+			} else {
 				prev->next = i->next;
 			}
 			add_head(&qb->unused_head, i);
 			--qb->queue_size;
 			return;
-		}
+		} 
 		prev = i;
 	}
+
+	/* should never happen */
+	ASSERT(0);
 }
 
 void* queue_buffer_find(struct queue_buffer* qb, const void *item, 

@@ -20,7 +20,7 @@
 #define CXMAC_CONF_ANNOUNCEMENTS    0
 #define XMAC_CONF_ANNOUNCEMENTS     0
 #else /* WITH_UIP6 */
-#define MAC_CONF_DRIVER             xmac_driver
+#define MAC_CONF_DRIVER             nullmac_driver
 #define MAC_CONF_CHANNEL_CHECK_RATE 4
 #define TIMESYNCH_CONF_ENABLED 1
 #define CC2420_CONF_TIMESTAMPS 1
@@ -30,7 +30,7 @@
 #define CXMAC_CONF_ANNOUNCEMENTS    1
 #endif /* WITH_UIP6 */
 
-#define QUEUEBUF_CONF_NUM          16
+#define QUEUEBUF_CONF_NUM          1
 
 #define PACKETBUF_CONF_ATTRS_INLINE 1
 
