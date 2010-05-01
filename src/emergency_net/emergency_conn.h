@@ -1,3 +1,5 @@
+/* Emergency connection provides a neighbor requirement on all communication
+ * inbetween nodes. */
 #ifndef _EMERGENCY_CONN_H_
 #define _EMERGENCY_CONN_H_
 
@@ -5,36 +7,44 @@
 #include "net/rime/ctimer.h"
 #include "net/rime/rimeaddr.h"
 
-#include "emergency_net/packet_buffer.h"
 #include "base/queue_buffer.h"
 
+#include "emergency_net/packet_buffer.h"
 #include "emergency_net/neighbors.h"
 
-#define SENDING_QUEUE_LENGTH 8
+#define SENDING_QUEUE_LENGTH 12
 #define DUPE_QUEUE_LENGTH 16
 
 struct ec;
-typedef void (*ec_callback_t)(struct ec *c, 
+typedef void (*ec_callback_data_t)(struct ec *c, 
 			const rimeaddr_t *originator, const rimeaddr_t *sender,
 			uint8_t hops, uint8_t seqno, const void *data, uint8_t data_len);
+typedef void (*ec_callback_timesynch_t)(struct ec *c);	
 
 struct ec_callbacks {
-	ec_callback_t recv;
-	ec_callback_t recv_dupe;
-	//ec_callback_t mesh_timeout;
+	ec_callback_data_t recv;
+	ec_callback_timesynch_t timesynch;
 };
 
 struct ec {
-	struct abc_conn data_conn;
-	struct abc_conn ack_conn;
+	struct abc_conn neighbor_conn;
+	struct abc_conn timesynch_conn;
+
 	PACKET_BUFFER(sq, SENDING_QUEUE_LENGTH);
 	struct buffered_packet *next_to_send;
 
 	QUEUE_BUFFER(dq, SLIM_PACKET_SIZE, DUPE_QUEUE_LENGTH);
 
-	struct neighbors ns;
+	const struct neighbors *ns;
 
 	struct ctimer send_timer;
+
+	struct {
+		struct ctimer timer;
+		uint8_t seqno;
+		int8_t is_on;
+	} ts; /* time synch */
+
 	const struct ec_callbacks *cb;
 };
 
@@ -43,21 +53,14 @@ void ec_open(struct ec *c, uint16_t data_channel,
 
 void ec_close(struct ec *c);
 
-void ec_async_broadcast(struct ec *c, const rimeaddr_t *originator, 
+void ec_set_neighbors(struct ec *c, const struct neighbors *ns);
+
+void ec_async_broadcast_ns(struct ec *c, const rimeaddr_t *originator, 
 		const rimeaddr_t *sender, uint8_t hops, uint8_t seqno, const void *data,
 		uint8_t data_len);
 
-void ec_async_multicast(struct ec *c, uint8_t number_of_destinations, 
-		const rimeaddr_t *destinations, const void *data, uint8_t data_len);
-
-void ec_async_unicast(struct ec *c, const rimeaddr_t *destination, 
-		const void *data, uint8_t data_len);
-
-//void ec_async_mesh(struct ec *c, const rimeaddr_t *destination, 
-//		const void *data, uint8_t data_len);
-
-void ec_update_neighbors(struct ec *c, const struct neighbors *ns);
-
-//void ec_update_route_table(struct ec_route_table *c);
+void ec_timesynch_on(struct ec *c);
+void ec_timesynch_off(struct ec *c);
+void ec_timesynch_network(struct ec *c);
 
 #endif

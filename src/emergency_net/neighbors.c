@@ -1,7 +1,5 @@
 #include "emergency_net/neighbors.h"
 
-#include "dev/cc2420.h"
-
 #include "stddef.h" /* NULL */
 
 #include "base/log.h"
@@ -18,13 +16,17 @@ static int neighbor_to_addr_cmp(const void *lhs, const void *rhs) {
 
 void neighbors_add(struct neighbors *ns, const rimeaddr_t *addr) {
 	struct neighbor_node nn;
-	struct neighbor_node *ret;
-	rimeaddr_copy(&nn.addr, addr);
-	nn.warnings = 0;
-	//nn.time_diff = 0;
-	ret = (struct neighbor_node*)queue_buffer_push_front(&ns->nbuf, &nn);
-	ASSERT(ret != NULL);
+	memset(&nn, 0, sizeof(struct neighbor_node));
+	neighbor_node_set_addr(&nn, addr);
+	neighbor_node_set_best_path(&nn, &best_path_max);
+
+	{
+		struct neighbor_node *ret = 
+			(struct neighbor_node*)queue_buffer_push_front(&ns->nbuf, &nn);
+		ASSERT(ret != NULL);
+	}
 }
+
 void neighbors_remove(struct neighbors *ns, const rimeaddr_t *addr) {
 	struct neighbor_node *nn = (struct neighbor_node*)
 		queue_buffer_find(&ns->nbuf, addr, neighbor_to_addr_cmp);
@@ -33,26 +35,24 @@ void neighbors_remove(struct neighbors *ns, const rimeaddr_t *addr) {
 	}
 }
 
+int neighbors_is_neighbor(const struct neighbors *ns, const rimeaddr_t *addr) {
+	return queue_buffer_find((struct queue_buffer*)&ns->nbuf, addr,
+			neighbor_to_addr_cmp) != NULL;
+}
 
-//rtimer_clock_t neighbors_update_time_diff(struct neighbors *ns, const rimeaddr_t *addr) {
+//void neighbors_warn(struct neighbors *ns, const rimeaddr_t *addr) {
 //	struct neighbor_node *nn = (struct neighbor_node*)
 //		queue_buffer_find(&ns->nbuf, addr, neighbor_to_addr_cmp);
 //	ASSERT(nn != NULL);
-//	nn->time_diff = cc2420_time_of_arrival - cc2420_time_of_departure;
-//
-//	LOG("Timediff: %d\n", nn->time_diff);
-//
-//	return nn->time_diff;
+//	++nn->warnings;
+//	LOG("Neighbor %d.%d warnings: %d\n", nn->addr.u8[0], nn->addr.u8[1], nn->warnings);
 //}
 
-int8_t neighbors_is_neighbor(struct neighbors *ns, const rimeaddr_t *addr) {
-	return queue_buffer_find(&ns->nbuf, addr, neighbor_to_addr_cmp) != NULL;
+struct neighbor_node* 
+neighbors_find_neighbor_node(struct neighbors *ns, const rimeaddr_t *addr) {
+	return (struct neighbor_node*)queue_buffer_find(&ns->nbuf, addr, neighbor_to_addr_cmp);
 }
 
-void neighbors_warn(struct neighbors *ns, const rimeaddr_t *addr) {
-	struct neighbor_node *nn = (struct neighbor_node*)
-		queue_buffer_find(&ns->nbuf, addr, neighbor_to_addr_cmp);
-	ASSERT(nn != NULL);
-	++nn->warnings;
-	LOG("Neighbor %d.%d warnings: %d\n", nn->addr.u8[0], nn->addr.u8[1], nn->warnings);
+void neighbors_clear(struct neighbors *ns) {
+	queue_buffer_clear(&ns->nbuf);
 }

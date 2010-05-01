@@ -94,7 +94,6 @@ void* queue_buffer_push_front(struct queue_buffer *qb, const void *item) {
 	struct queue_buffer_s *b = allocate_buffer_space_front(qb);
 	if (b != NULL) {
 		++qb->queue_size;
-		/*user should check that the buffer is big enough*/
 		memcpy(b->data, item, qb->buffer_size);
 		return b->data;
 	}
@@ -107,7 +106,6 @@ void* queue_buffer_push_back(struct queue_buffer* qb, const void *item) {
 	struct queue_buffer_s *b = allocate_buffer_space_back(qb);
 	if (b != NULL) {
 		++qb->queue_size;
-		/*user should check that the buffer is big enough*/
 		memcpy(b->data, item, qb->buffer_size);
 		return b->data;
 	}
@@ -186,4 +184,13 @@ void* queue_buffer_find(struct queue_buffer* qb, const void *item,
 	}
 
 	return NULL;
+}
+
+void queue_buffer_clear(struct queue_buffer *qb) {
+	qb->queue_size = 0;
+	if (qb->used_head != NULL) {
+		add_tail(&qb->unused_head, qb->used_head);
+		qb->used_head = NULL;
+	}
+	qb->iterator = NULL;
 }

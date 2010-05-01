@@ -1,1 +1,2 @@
-PROJECT_SOURCEFILES += emergency_conn.c neighbors.c packet_buffer.c packet.c
+PROJECT_SOURCEFILES += emergency_conn.c neighbors.c neighbor_node.c packet_buffer.c packet.c timesynch.c timesynch_gluer.c coordinate.c
+#PROJECT_SOURCEFILES += timesynch.c

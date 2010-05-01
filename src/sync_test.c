@@ -11,8 +11,8 @@
 	static void
 abc_recv(struct abc_conn *c)
 {
-	LOG("Msg recv T:%u, Ts: %u, sent: %u recv: %u, timest: %u\n", RTIMER_NOW(), timesynch_time(),
-			cc2420_time_of_departure, cc2420_time_of_arrival, packetbuf_attr(PACKETBUF_ATTR_TIMESTAMP));
+	LOG("HEJ HEJ\n");
+	LOG("Msg recv T:%u, Ts: %u\n", RTIMER_NOW(), timesynch_time());
 }
 
 static const struct abc_callbacks abc_call = {abc_recv};
@@ -28,6 +28,8 @@ PROCESS_THREAD(fire_process, ev, data) {
 	PROCESS_EXITHANDLER(abc_close(&abc););
 
 	PROCESS_BEGIN();
+//	timesynch_init();
+//	timesynch_set_authority_level(rimeaddr_node_addr.u8[0]);
 
 	abc_open(&abc, 128, &abc_call);
 	SENSORS_ACTIVATE(button_sensor);

@@ -16,80 +16,104 @@
 
 #include "base/log.h"
 
-#define EMERGENCYNET_REGULAR_SENSOR_CHANNEL 128
-#define BLINKING_SEQUENCE_LENGTH 4
-#define BLINKING_SEQUENCE_SWITCH_TIME (1024)
+/* 0 means no simulation */
+#define EMERGENCY_COOJA_SIMULATION 1
 
-/****** PACKETS ******/
+#define EMERGENCYNET_CHANNEL 128
+#define BLINKING_SEQUENCE_LENGTH 4
+#define BLINKING_SEQUENCE_SWITCH_TIME 1024
+#define MAX_FIRE_COORDINATES 10
+
+
+/****** PACKET TYPES ******/
 enum {
-	FIRE_PACKET = 0,
-	RESYNCH_UPDATE = 1,
-	APPLICATION_UPDATE_PACKET = 2
+	/* System in action */
+	EMERGENCY_PACKET,
+	BEST_PATH_UPDATE_PACKET,
+
+	/* Setup of the system */
+	START_BLINKING_PACKET,
+	STOP_BLINKING_PACKET,
+	SETUP_PACKET,
+
+	NEW_NEIGHBOR_PACKET,
+	INITIALIZE_BEST_PATHS_PACKET,
+
+	/* Contains: 
+	 * - Coordinate 
+	 * - Hops to nearest exit
+	 * - Shortest distance to nearest exit
+	 * - Through what node is the shortest distance calculated */
+	NODE_INFO_PACKET,
+
+	RESET_SYSTEM_PACKET
+};
+
+struct sensor_packet {
+	uint8_t type;
 };
 
 struct emergency_packet {
 	uint8_t type;
+	struct coordinate source;
 };
 
-/* TODO(johan): pragma pack push 1? */
-struct fire_packet {
+struct best_path_update_packet {
 	uint8_t type;
-	rtimer_clock_t blinking_started;
-	rimeaddr_t nearest_exit_neighbor;
-	uint8_t nearest_exit_hops;
+	struct best_path bp;
 };
 
-enum blinking_sequence_status {
+/* GUI setup packet. */
+#define SETUP_PACKET_SIZE (sizeof(struct setup_packet)-sizeof(uint8_t))
+struct setup_packet {
+	uint8_t type;
+	rimeaddr_t new_addr;
+	struct coordinate new_coord;
+	int8_t is_exit_node;
+	uint8_t num_neighbors;
+	rimeaddr_t neighbors[1];
+};
+
+struct node_info_packet {
+	uint8_t type;
+	struct coordinate coord;
+	struct best_path bp;
+};
+
+enum blinking_sequence_state {
 	ON = 0, OFF_1 = 1, OFF_2 = 2, OFF_3 = 3
 };
 
-struct blinking_timer {
-	struct rtimer rt;
-	struct ctimer synch_timer;
-	rtimer_clock_t next_wakeup;
-	//struct pt pt;
-};
-
-struct exit_path {
-	rimeaddr_t neighbor;
-	uint8_t hops; /* to exit */
-	rtimer_clock_t blinking_started;
-	int8_t points_to_us; /* is neighbor hop-count through us? */
-	//int8_t burning; /* is neighbor burning? */
-};
-
-static int exit_path_cmp(const struct exit_path *lhs,
-		const struct exit_path *rhs) {
-	return rimeaddr_cmp(&lhs->neighbor, &rhs->neighbor) &&
-		lhs->hops == rhs->hops;
-}
-
-struct routing_entry {
-	uint16_t subnet_mask;
-	rimeaddr_t next;
-};
-
-static struct ec emergency_connection;
-
 struct node_properties {
-	struct exit_path current_path;
-	struct blinking_timer btimer;
-	enum blinking_sequence_status bstatus;
-	int8_t blink;
-	int8_t on_fire;
-	int8_t is_exit_node;
+	struct neighbors ns;
+	const struct neighbor_node *bpn; /* best path neighbor */
+
+	QUEUE_BUFFER(emergency_coords, sizeof(struct coordinate), MAX_FIRE_COORDINATES);
+
+	struct {
+		struct rtimer rt;
+		rtimer_clock_t next_wakeup;
+		enum blinking_sequence_state state;
+	} blinking;
+
+	struct {
+		int8_t is_blinking;
+		int8_t is_aware_of_emergency;
+		int8_t has_sensed_emergency;
+		int8_t is_exit_node;
+		int8_t has_sent_node_info;
+	} state;
+
+	struct ec c;
 	uint8_t seqno;
-	QUEUE_BUFFER(exit_paths, sizeof(struct exit_path), MAX_NEIGHBORS);
-	//QUEUE_BUFFER(routing_entries, sizeof(struct routing_entry), MAX_NEIGHBORS);
 };
 
-static struct node_properties g_properties;
+static struct node_properties g_np;
 
 static void 
 blink(struct rtimer *rt, void *ptr) {
-	//PT_BEGIN(&g_properties.btimer.pt);
-	//while(1) {
-		switch(g_properties.bstatus) {
+	if (g_np.state.is_blinking) {
+		switch(g_np.blinking.state) {
 			case ON:
 				leds_blue(1);
 				break;
@@ -103,309 +127,236 @@ blink(struct rtimer *rt, void *ptr) {
 				leds_blue(0);
 				break;
 		}
-		g_properties.bstatus = (g_properties.bstatus+1) % BLINKING_SEQUENCE_LENGTH;
-		g_properties.btimer.next_wakeup += BLINKING_SEQUENCE_SWITCH_TIME;
-		if (g_properties.blink)
-			rtimer_set(&g_properties.btimer.rt, g_properties.btimer.next_wakeup, 0, blink, NULL);
-		else
-			leds_blue(1);
-		//PT_YIELD(&g_properties.btimer.pt);
-	//}
-	//PT_END(&g_properties.btimer.pt);
-}
+		g_np.blinking.next_wakeup += BLINKING_SEQUENCE_SWITCH_TIME;
+		rtimer_set(&g_np.blinking.rt, g_np.blinking.next_wakeup, 0, blink, NULL);
 
-static void
-update_blinking() {
-	if (g_properties.blink) {
-		if (g_properties.is_exit_node) {
-			g_properties.bstatus = 0;
-		} else {
-			g_properties.bstatus = (g_properties.current_path.hops+1) % BLINKING_SEQUENCE_LENGTH;
-		}
-
-		{
-			rtimer_clock_t now = timesynch_time();
-			uint16_t blinking_sequences_next = (now / BLINKING_SEQUENCE_SWITCH_TIME)+1;
-			//LOG("Update blinking time: %u\n", now);
-		//	if (now < g_properties.current_path.blinking_started) {
-		//		now += (USHRT_MAX - g_properties.current_path.blinking_started);
-		//	}
-			//LOG("MY TIME: %d\n", now);
-
-			g_properties.btimer.next_wakeup = timesynch_time_to_rtimer(blinking_sequences_next*BLINKING_SEQUENCE_SWITCH_TIME);
-			rtimer_set(&g_properties.btimer.rt, g_properties.btimer.next_wakeup, 0, /*(rtimer_callback_t)*/blink, NULL);
-
-			g_properties.bstatus = (g_properties.bstatus+blinking_sequences_next) % BLINKING_SEQUENCE_LENGTH;
-		}
+		g_np.blinking.state = (g_np.blinking.state+1) % BLINKING_SEQUENCE_LENGTH;
 	}
 }
 
+static void
+blinking_update() {
+	TRACE("Updating blinking\n");
+	if (g_np.state.is_blinking) {
+		uint16_t blinking_sequences_next = (timesynch_time() /
+				BLINKING_SEQUENCE_SWITCH_TIME)+1;
+		g_np.blinking.next_wakeup =
+			timesynch_time_to_rtimer(blinking_sequences_next*
+					BLINKING_SEQUENCE_SWITCH_TIME);
 
-static void 
-resynch_blinking(void *unused) {
-	struct emergency_packet r = {RESYNCH_UPDATE};
-	ec_async_broadcast(&emergency_connection, &rimeaddr_node_addr, &rimeaddr_node_addr,
-			0, g_properties.seqno++, &r, sizeof(struct emergency_packet));
-	ctimer_set(&g_properties.btimer.synch_timer, 60*CLOCK_SECOND, resynch_blinking, NULL);
+		rtimer_set(&g_np.blinking.rt, g_np.blinking.next_wakeup, 0, blink,
+				NULL);
+
+		if(!g_np.state.is_exit_node) {
+			ASSERT(g_np.bpn != NULL);
+			g_np.blinking.state = (g_np.bpn->bp.hops+1+blinking_sequences_next) %
+				BLINKING_SEQUENCE_LENGTH;
+		} else {
+			g_np.blinking.state = blinking_sequences_next %
+				BLINKING_SEQUENCE_LENGTH;
+		}
+	} 
 }
 
 static void
-init_blinking() {
-	//PT_INIT(&g_properties.btimer.pt);
-	//TRACE("Init blinking...\n");
-	//g_properties.btimer.next_wakeup = g_properties.current_path.blinking_started;
-
-	g_properties.blink = 1;
-	update_blinking();
-	if (g_properties.is_exit_node)
-		resynch_blinking(NULL);
-
-
-//	do {
-//		g_properties.btimer.next_wakeup += BLINKING_SEQUENCE_SWITCH_TIME;
-//	} while (g_properties.btimer.next_wakeup < timesynch_time());
+blinking_on() {
+	if (!g_np.state.is_blinking) {
+		g_np.state.is_blinking = 1;
+		blinking_update();
+	}
 }
 
+void setup_parse(const struct setup_packet *sp) {
+	int i = 0;
+	const rimeaddr_t *addr = sp->neighbors;
 
-//static void blink(void* unused) {
-//	switch(g_properties.bstatus) {
-//		case ON:
-//			leds_blue(1);
-//			break;
-//		case OFF_1:
-//			leds_blue(0);
-//			break;
-//		case OFF_2:
-//			break;
-//	}
-//
-//	if (g_properties.blink) {
-//		ctimer_reset(&g_properties.btimer.ct);
-//		g_properties.bstatus = (g_properties.bstatus+1) % BLINKING_SEQUENCE_LENGTH;
-//	} else {
-//		leds_blue(1);
-//	}
-//}
-//
-//static void blink_start(void *unused) {
-//	ctimer_set(&g_properties.btimer.ct,
-//			BLINKING_SEQUENCE_SWITCH_TIME, blink,
-//			NULL);
-//	g_properties.bstatus = (g_properties.bstatus+1) % BLINKING_SEQUENCE_LENGTH;
-//}
-//
-////static struct rtimer blinking_init_timer;
-//static void init_blinking() {
-//	rtimer_clock_t next_wakeup = g_properties.current_path.blinking_started;
-//	g_properties.bstatus = (g_properties.current_path.hops+1) % BLINKING_SEQUENCE_LENGTH;
-//	do {
-//		next_wakeup += RTIMER_SECOND;
-//		g_properties.bstatus = (g_properties.bstatus+1) % BLINKING_SEQUENCE_LENGTH;
-//	} while (next_wakeup < RTIMER_NOW());
-//
-//	//rtimer_set(&blinking_init_timer, next_wakeup, 0, blink_start, NULL);
-//	ctimer_set(&g_properties.btimer.ct,
-//			(next_wakeup-RTIMER_NOW())*CLOCK_SECOND/RTIMER_SECOND, blink_start,
-//			NULL);
-//	g_properties.blink = 1;
-//}
+	//FIXME(johan): Not so good since ACK will be from different ID!
+	rimeaddr_set_node_addr((rimeaddr_t*)&sp->new_addr);
 
-static inline void
-cancel_blinking() {
-	//ctimer_stop(&g_properties.btimer.synch_timer);
-	g_properties.blink = 0;
-}
+	coordinate_set_node_coord(&sp->new_coord);
 
-static inline void
-set_exit_node(int on) {
-	g_properties.is_exit_node = on;
-	if (on) {
+	neighbors_clear(&g_np.ns);
+
+	for(; i < sp->num_neighbors; ++i) {
+		neighbors_add(&g_np.ns, addr++);
+	}
+	
+	if (sp->is_exit_node) {
+		g_np.state.is_exit_node = 1;
 		leds_green(1);
 	}
 }
 
-static int 
-exit_path_to_addr_cmp(const void *queued_item, const void *supplied_item) {
-	const struct exit_path *ep = (struct exit_path*)queued_item;
-	const rimeaddr_t *si = (rimeaddr_t*)supplied_item;
-	return rimeaddr_cmp(&ep->neighbor, si);
+static metric_t
+calculate_metric(distance_t distance) {
+	return distance;
 }
 
-static struct exit_path*
-update_and_get_nearest_path(const struct fire_packet *fp, const rimeaddr_t *sender) {
+static const struct neighbor_node*
+find_best_exit_path_neighbor() {
+	const struct neighbor_node *best = NULL;
+	const struct neighbor_node *i = neighbors_begin(&g_np.ns);
+	metric_t min_metric = METRIC_T_MAX;
+	metric_t metric;
 
-	struct exit_path *nearest = NULL;
-	struct exit_path *ep = (struct exit_path*)
-		queue_buffer_find(&g_properties.exit_paths, sender,
-				exit_path_to_addr_cmp);
-	ASSERT(ep != NULL);
-	ep->hops = fp->nearest_exit_hops;
-	ep->blinking_started = fp->blinking_started;
-
-	if (rimeaddr_cmp(&fp->nearest_exit_neighbor, &rimeaddr_node_addr)) {
-		/* Neighbor node is thinking its nearest path is through us. */
-		ep->points_to_us = 1;
-	} else {
-		ep->points_to_us = 0;
-	}
-
-	{
-		uint8_t least_hops = 0xFF;
-		struct exit_path *i;
-		for (i = (struct exit_path*)queue_buffer_begin(&g_properties.exit_paths); 
-				i != NULL;
-				i = (struct exit_path*)queue_buffer_next(&g_properties.exit_paths)) {
-			LOG("Neighbor: %d.%d, Points-to-us: %d, hops:%d\n", 
-					i->neighbor.u8[0], i->neighbor.u8[1],
-					i->points_to_us, i->hops);
-			if (!i->points_to_us && i->hops < least_hops) {
-				least_hops = i->hops;
-				nearest = i;
+	for(;i != NULL; i = neighbors_next(&g_np.ns)) {
+		if(!neighbor_node_points_to_us(i)) { 
+			metric = calculate_metric( neighbor_node_distance(i) ) +
+				neighbor_node_metric(i);
+			if (metric < min_metric) {
+				min_metric = metric;
+				best = i;
 			}
 		}
 	}
 
-	return nearest;
+	return best;
 }
 
-static void process_fire_packet(struct ec *c, const struct fire_packet *fp,
-		const rimeaddr_t *originator, const rimeaddr_t *sender, uint8_t hops,
-		uint8_t seqno) {
-
-	const struct exit_path *nearest = update_and_get_nearest_path(fp, sender);
-
-	if (nearest != NULL) {
-		if(!exit_path_cmp(&g_properties.current_path, nearest)) {
-			/* Update in the exit path. Broadcast needed! */
-			struct fire_packet new_fp;
-			new_fp.type = FIRE_PACKET;
-			new_fp.blinking_started = 
-				nearest->blinking_started == 0 ? fp->blinking_started :
-				nearest->blinking_started;
-
-			rimeaddr_copy(&new_fp.nearest_exit_neighbor, &nearest->neighbor);
-			new_fp.nearest_exit_hops = nearest->hops+1;
-			g_properties.current_path = *nearest;
-			init_blinking();
-			ec_async_broadcast(c, originator, &rimeaddr_node_addr,
-					hops+1, seqno, &new_fp, sizeof(struct fire_packet));
-		}
+/* Transforms our best neighbor's best path to our own. */
+void best_neighbor_bp_to_our_bp(struct best_path *ourbp) {
+	if(!g_np.state.is_exit_node) {
+		ASSERT(g_np.bpn != NULL);
+		ourbp->metric = neighbor_node_metric(g_np.bpn) + calculate_metric(neighbor_node_distance(g_np.bpn));
+		rimeaddr_copy(&ourbp->points_to, neighbor_node_addr(g_np.bpn));
+		ourbp->hops = neighbor_node_hops(g_np.bpn) + 1;
 	} else {
-		/* Every neighbor either points to us or does not know a way out. Which
-		 * means that we have no idea where an exit is. */
-		struct fire_packet new_fp;
-		new_fp.type = FIRE_PACKET;
-		new_fp.blinking_started = fp->blinking_started;
-	   	new_fp.nearest_exit_hops = 0xFF;
-		rimeaddr_copy(&new_fp.nearest_exit_neighbor, &rimeaddr_null);
-
-		rimeaddr_copy(&g_properties.current_path.neighbor, &rimeaddr_null);
-
-		cancel_blinking();
-		ec_async_broadcast(c, originator, &rimeaddr_node_addr,
-				hops+1, seqno, &new_fp, sizeof(struct fire_packet));
+		ourbp->metric = calculate_metric(0);
+		rimeaddr_copy(&ourbp->points_to, &rimeaddr_node_addr);
+		ourbp->hops = 0;
 	}
 }
 
-static void ec_recv_dupe(struct ec *c, const rimeaddr_t *originator, 
-		const rimeaddr_t *sender, uint8_t hops, uint8_t seqno, 
-		const void *data, uint8_t data_len) {
-	const struct emergency_packet *p = (struct emergency_packet*)data;
+static void
+broadcast_best_path() {
+	struct best_path_update_packet bpup;
 
-	update_blinking();
+	bpup.type = BEST_PATH_UPDATE_PACKET;
+	best_neighbor_bp_to_our_bp(&bpup.bp);
 
-	switch(p->type) {
-		case FIRE_PACKET:
-			{
-				const struct fire_packet *fp = (struct fire_packet*)p;
-				LOG("[FP RECV DUPE]: type: %d, bstart: %d, nearest_en: %d.%d, "
-						"nereast_exit_hops: %d\n",
-						fp->type, fp->blinking_started,
-						fp->nearest_exit_neighbor.u8[0],
-						fp->nearest_exit_neighbor.u8[1],
-						fp->nearest_exit_hops);
-				if (g_properties.is_exit_node) {
-					/* neighbors already know our best path. dont announce it
-					 * again. */
-				} else if (g_properties.on_fire) {
-					const struct exit_path *nearest =
-						update_and_get_nearest_path(fp, sender);
+	ec_async_broadcast_ns(&g_np.c, &rimeaddr_node_addr, &rimeaddr_node_addr,
+			0, g_np.seqno++, &bpup, sizeof(struct best_path_update_packet));
+}
 
-					if (nearest != NULL) {
-						g_properties.current_path = *nearest;
-						init_blinking();
-					}
-				} else {
-					process_fire_packet(c, fp, originator, sender, hops, seqno);
-				}
-			}
-			break;
-		case RESYNCH_UPDATE:
-			break;
-		case APPLICATION_UPDATE_PACKET:
-			ASSERT(0);
-			break;
-		default:
-			LOG("Unknown application packet type\n");
+static void
+broadcast_new_path_if_changed() {
+	const struct neighbor_node *best = find_best_exit_path_neighbor();
+	ASSERT(best != NULL);
+
+	if (g_np.bpn == NULL || 
+			neighbor_node_metric(best) < neighbor_node_metric(g_np.bpn)) {
+		/* another neighbor now has the best path */
+		g_np.bpn = best;
+		broadcast_best_path();
+		blinking_update();
+	} else if (g_np.bpn == best) {
+		/* check if updated. */
+		/* TODO(johan):implement hysterisis */
+		if (neighbor_node_metric(g_np.bpn) != neighbor_node_metric(best)) {
+			/* neighbor updated its metrics. Broadcast changes. */
+			broadcast_best_path();
+		}
 	}
-
 }
 
 static void ec_recv(struct ec *c, const rimeaddr_t *originator, 
 		const rimeaddr_t *sender, uint8_t hops, uint8_t seqno, 
 		const void *data, uint8_t data_len) {
-	const struct emergency_packet *p = (struct emergency_packet*)data;
-
-	update_blinking();
+	const struct sensor_packet *p = (struct sensor_packet*)data;
 
 	switch(p->type) {
-		case FIRE_PACKET:
+		case EMERGENCY_PACKET:
 			{
-				const struct fire_packet *fp = (struct fire_packet*)p;
-				LOG("FP RECV: type: %d, bstart: %d, nearest_en: %d.%d, "
-						"nereast_exit_hops: %d\n",
-						fp->type, fp->blinking_started,
-						fp->nearest_exit_neighbor.u8[0],
-						fp->nearest_exit_neighbor.u8[1],
-						fp->nearest_exit_hops);
+				struct emergency_packet *ep = (struct emergency_packet*)p;
+				queue_buffer_push_front(&g_np.emergency_coords, &ep->source);
 
-				if (g_properties.is_exit_node) {
-					struct fire_packet new_fp;
-					rtimer_clock_t my_time = fp->blinking_started;
+				/* forward packet */
+				ec_async_broadcast_ns(&g_np.c, originator, &rimeaddr_node_addr,
+						hops+1, seqno, data, data_len);
 
-					new_fp.type = FIRE_PACKET;
-					new_fp.blinking_started = my_time;
-					rimeaddr_copy(&new_fp.nearest_exit_neighbor, &rimeaddr_node_addr);
-					new_fp.nearest_exit_hops = 0;
-					g_properties.current_path.hops = 0;
-					g_properties.current_path.blinking_started = my_time;
-					init_blinking();
-					ec_async_broadcast(c, originator, &rimeaddr_node_addr,
-							hops+1, seqno, &new_fp, sizeof(struct fire_packet));
-				} else if (g_properties.on_fire) {
-					/* drop packet. */
-					const struct exit_path *nearest =
-						update_and_get_nearest_path(fp, sender);
+				blinking_on();
+			}
+			break;
+		case BEST_PATH_UPDATE_PACKET:
+			{
+				const struct best_path_update_packet *bpup = 
+					(struct best_path_update_packet*)p;
+				struct neighbor_node *nn =
+					neighbors_find_neighbor_node(&g_np.ns, sender);
+				ASSERT(nn != NULL);
 
-					if (nearest != NULL) {
-						g_properties.current_path = *nearest;
-						init_blinking();
-					} else {
-						cancel_blinking();
-					}
-				} else {
-					process_fire_packet(c, fp, originator, sender, hops, seqno);
+				neighbor_node_set_best_path(nn, &bpup->bp);
+
+				/* The shortest path could have changed. */
+				if (!g_np.state.is_exit_node) {
+					broadcast_new_path_if_changed();
 				}
 			}
 			break;
-		case RESYNCH_UPDATE:
-			{
-				struct emergency_packet r = {RESYNCH_UPDATE};
-				ec_async_broadcast(c, originator, &rimeaddr_node_addr,
-						hops+1, seqno, &r, sizeof(struct emergency_packet));
+		case START_BLINKING_PACKET:
+			ASSERT(0);
+			break;
+		case STOP_BLINKING_PACKET:
+			ASSERT(0);
+			break;
+		case SETUP_PACKET:
+			setup_parse((const struct setup_packet*)p);
+			break;
+		case NEW_NEIGHBOR_PACKET:
+			ASSERT(0);
+			break;
+
+		case INITIALIZE_BEST_PATHS_PACKET:
+			ec_async_broadcast_ns(&g_np.c,
+					originator, &rimeaddr_node_addr, hops+1,
+					seqno, data, data_len);
+
+			if(g_np.state.is_exit_node) {
+				struct node_info_packet nip;
+
+				nip.type = NODE_INFO_PACKET;
+				nip.coord = coordinate_node;
+				best_neighbor_bp_to_our_bp(&nip.bp);
+
+				ec_async_broadcast_ns(&g_np.c,
+						&rimeaddr_node_addr, &rimeaddr_node_addr, 0,
+						g_np.seqno++, &nip, sizeof(struct node_info_packet));
+				g_np.state.has_sent_node_info = 1;
 			}
 			break;
-		case APPLICATION_UPDATE_PACKET:
+		case NODE_INFO_PACKET:
+			{
+				const struct node_info_packet *nip = (struct node_info_packet*)p;
+				struct neighbor_node *nn = neighbors_find_neighbor_node(&g_np.ns, sender);
+				ASSERT(nn != NULL);
+				neighbor_node_set_coordinate(nn, &nip->coord);
+				neighbor_node_set_best_path(nn, &nip->bp);
+
+				if (!g_np.state.has_sent_node_info) {
+					struct node_info_packet new_nip;
+					const struct neighbor_node *best = find_best_exit_path_neighbor();
+					ASSERT(best != NULL);
+					if (best != g_np.bpn) {
+						/* update our own best path */
+						g_np.bpn = best;
+					}
+					new_nip.type = NODE_INFO_PACKET;
+					new_nip.coord = coordinate_node;
+					best_neighbor_bp_to_our_bp(&new_nip.bp);
+
+					ec_async_broadcast_ns(&g_np.c,
+							&rimeaddr_node_addr, &rimeaddr_node_addr, 0,
+							g_np.seqno++, &new_nip, sizeof(struct node_info_packet));
+					g_np.state.has_sent_node_info = 1;
+				} else {
+					/* send update only if we found a better path */
+					if (!g_np.state.is_exit_node) {
+						broadcast_new_path_if_changed();
+					}
+				}
+			}
+			break;
+		case RESET_SYSTEM_PACKET:
 			ASSERT(0);
 			break;
 		default:
@@ -414,7 +365,13 @@ static void ec_recv(struct ec *c, const rimeaddr_t *originator,
 	}
 }
 
-const static struct ec_callbacks ec_cb = {ec_recv, ec_recv_dupe};
+static void
+ec_timesynch(struct ec *c) {
+	/* System got timesynched */
+	blinking_update();
+}
+
+const static struct ec_callbacks ec_cb = {ec_recv, ec_timesynch};
 
 
 PROCESS(fire_process, "FireWSN");
@@ -423,15 +380,14 @@ AUTOSTART_PROCESSES(&fire_process);
 PROCESS_THREAD(fire_process, ev, data) {
 
 	//static struct etimer fire_check_timer;
-	PROCESS_EXITHANDLER(ec_close(&emergency_connection));
+	PROCESS_EXITHANDLER(ec_close(&g_np.c));
 
 	PROCESS_BEGIN();
-	g_properties.seqno = 0;
-	QUEUE_BUFFER_INIT_WITH_STRUCT(&g_properties, exit_paths, 
-			sizeof(struct exit_path), MAX_NEIGHBORS);
-	//	QUEUE_BUFFER_INIT_WITH_STRUCT(&g_properties, routing_entries, 
-	//			sizeof(struct exit_path), MAX_NEIGHBORS);
-	ec_open(&emergency_connection, EMERGENCYNET_REGULAR_SENSOR_CHANNEL, &ec_cb);
+	memset(&g_np, 0, sizeof(struct node_properties));
+	neighbors_init(&g_np.ns);
+	ec_open(&g_np.c, EMERGENCYNET_CHANNEL, &ec_cb);
+	ec_timesynch_on(&g_np.c);
+
 	SENSORS_ACTIVATE(button_sensor);
 
 	while(1) {
@@ -439,130 +395,179 @@ PROCESS_THREAD(fire_process, ev, data) {
 		PROCESS_WAIT_EVENT();
 
 		if (ev == sensors_event) {
+#ifdef EMERGENCY_COOJA_SIMULATION
 			if (data == &button_sensor) {
-				struct fire_packet fp;
-				fp.type = FIRE_PACKET;
-				fp.blinking_started = RTIMER_NOW();
-				rimeaddr_copy(&fp.nearest_exit_neighbor, &rimeaddr_null);
-			   	fp.nearest_exit_hops = 0xFF;
-				rimeaddr_copy(&g_properties.current_path.neighbor, &rimeaddr_null);
-				LOG("I SENSED FIRE!\n");
-				cancel_blinking();
-				ec_async_broadcast(&emergency_connection, &rimeaddr_node_addr,
-						&rimeaddr_node_addr, 0, g_properties.seqno++, &fp,
-						sizeof(struct fire_packet));
-				leds_red(1);
-				g_properties.on_fire = 1;
-			} 
-		} else if (ev == serial_line_event_message && data != NULL) {
-			if (strcmp(data, "1") == 0) {
-				struct neighbors ns;
-				struct exit_path ep;
-				memset(&ep, 0, sizeof(struct exit_path));
-				neighbors_init(&ns);
+				/* simulate emergency */
+				struct emergency_packet ep;
+				LOG("I SENSED EMERGENCY\n");
+				ep.type = EMERGENCY_PACKET;
+				ep.source = coordinate_node;
+				queue_buffer_push_front(&g_np.emergency_coords, &coordinate_node);
 
-			//	ep.neighbor.u8[0] = 1;
-			//	ep.neighbor.u8[1] = 0;
-			//	ep.hops = 0;
-				//rimeaddr_set_node_addr(&ep.neighbor);
-				//queue_buffer_push_front(&g_properties.exit_paths, &ep);
-				{ 
+				ec_async_broadcast_ns(&g_np.c, &rimeaddr_node_addr,
+						&rimeaddr_node_addr, 0, g_np.seqno++, &ep,
+						sizeof(struct emergency_packet));
+
+				broadcast_best_path();
+
+				/* Leader node should synchronize every 30 sec. New leader
+				 * should be elected if we hit timeout of 60 sec. */
+				ec_timesynch_network(&g_np.c);
+
+				leds_red(1);
+				blinking_on();
+				g_np.state.has_sensed_emergency = 1;
+				g_np.state.is_aware_of_emergency = 1;
+			} 
+#endif
+		} else if (ev == serial_line_event_message && data != NULL) {
+#if EMERGENCY_COOJA_SIMULATION == 1
+			if (strcmp(data, "1") == 0) {
+				uint8_t tmp[SETUP_PACKET_SIZE+1*sizeof(rimeaddr_t)] = {0};
+				struct setup_packet *sp = (struct setup_packet*)tmp;
+				rimeaddr_t *neighbor_addr = sp->neighbors;
+
+				sp->type = SETUP_PACKET;
+
+				{
 					rimeaddr_t addr;
 					addr.u8[0] = 1;
 					addr.u8[1] = 0;
-					rimeaddr_set_node_addr(&addr);
+					rimeaddr_copy(&sp->new_addr, &addr);
+				}
+				{
+					struct coordinate coord = {0,0};
+					sp->new_coord = coord;
 				}
 
-				ep.neighbor.u8[0] = 2;
-				ep.neighbor.u8[1] = 0;
-				ep.hops = 1;
-				neighbors_add(&ns, &ep.neighbor);
-				queue_buffer_push_front(&g_properties.exit_paths, &ep);
-				ec_update_neighbors(&emergency_connection, &ns);
+				sp->is_exit_node = 1;
+				sp->num_neighbors = 1;
 
-				set_exit_node(1);
-
-				LOG("Im now node 1.0 (exit node)\n");
-			} else if(strcmp(data, "2") == 0) {
-				struct neighbors ns;
-				struct exit_path ep;
-				memset(&ep, 0, sizeof(struct exit_path));
-				neighbors_init(&ns);
-
-				{ 
+				{
 					rimeaddr_t addr;
 					addr.u8[0] = 2;
 					addr.u8[1] = 0;
-					rimeaddr_set_node_addr(&addr);
+					rimeaddr_copy(neighbor_addr++, &addr);
 				}
 
-				ep.neighbor.u8[0] = 1;
-				ep.neighbor.u8[1] = 0;
-				ep.hops = 0;
-				neighbors_add(&ns, &ep.neighbor);
-				queue_buffer_push_front(&g_properties.exit_paths, &ep);
+				setup_parse(sp);
 
-				ep.neighbor.u8[0] = 3;
-				ep.neighbor.u8[1] = 0;
-				ep.hops = 2;
-				neighbors_add(&ns, &ep.neighbor);
-				queue_buffer_push_front(&g_properties.exit_paths, &ep);
+				ec_set_neighbors(&g_np.c, &g_np.ns);
 
-				ec_update_neighbors(&emergency_connection, &ns);
+				LOG("Im now node 1.0 (exit node)\n");
+			} else if(strcmp(data, "2") == 0) {
+				uint8_t tmp[SETUP_PACKET_SIZE+2*sizeof(rimeaddr_t)] = {0};
+				struct setup_packet *sp = (struct setup_packet*)tmp;
+				rimeaddr_t *neighbor_addr = sp->neighbors;
+
+				sp->type = SETUP_PACKET;
+
+				{
+					rimeaddr_t addr;
+					addr.u8[0] = 2;
+					addr.u8[1] = 0;
+					rimeaddr_copy(&sp->new_addr, &addr);
+				}
+				{
+					struct coordinate coord = {1,0};
+					sp->new_coord = coord;
+				}
+
+				sp->is_exit_node = 0;
+				sp->num_neighbors = 2;
+
+				{
+					rimeaddr_t addr;
+
+					addr.u8[0] = 1;
+					addr.u8[1] = 0;
+					rimeaddr_copy(neighbor_addr++, &addr);
+
+					addr.u8[0] = 3;
+					addr.u8[1] = 0;
+					rimeaddr_copy(neighbor_addr++, &addr);
+				}
+
+				setup_parse(sp);
+
+				ec_set_neighbors(&g_np.c, &g_np.ns);
 				LOG("Im now node 2.0\n");
 			} else if(strcmp(data, "3") == 0) {
-				struct neighbors ns;
-				struct exit_path ep;
-				memset(&ep, 0, sizeof(struct exit_path));
-				neighbors_init(&ns);
+				uint8_t tmp[SETUP_PACKET_SIZE+1*sizeof(rimeaddr_t)] = {0};
+				struct setup_packet *sp = (struct setup_packet*)tmp;
+				rimeaddr_t *neighbor_addr = sp->neighbors;
+
+				sp->type = SETUP_PACKET;
 
 				{
 					rimeaddr_t addr;
 					addr.u8[0] = 3;
 					addr.u8[1] = 0;
-					rimeaddr_set_node_addr(&addr);
+					rimeaddr_copy(&sp->new_addr, &addr);
+				}
+				{
+					struct coordinate coord = {2,0};
+					sp->new_coord = coord;
 				}
 
-				ep.neighbor.u8[0] = 2;
-				ep.neighbor.u8[1] = 0;
-				ep.hops = 1;
-				neighbors_add(&ns, &ep.neighbor);
-				queue_buffer_push_front(&g_properties.exit_paths, &ep);
-
-				ep.neighbor.u8[0] = 4;
-				ep.neighbor.u8[1] = 0;
-				ep.hops = 3;
-				neighbors_add(&ns, &ep.neighbor);
-				queue_buffer_push_front(&g_properties.exit_paths, &ep);
-
-				ec_update_neighbors(&emergency_connection, &ns);
-				LOG("Im now node 3.0\n");
-			} else if(strcmp(data, "4") == 0) {
-				struct neighbors ns;
-				struct exit_path ep;
-				memset(&ep, 0, sizeof(struct exit_path));
-				neighbors_init(&ns);
+				sp->is_exit_node = 0;
+				sp->num_neighbors = 1;
 
 				{
 					rimeaddr_t addr;
-					addr.u8[0] = 4;
+
+					addr.u8[0] = 2;
 					addr.u8[1] = 0;
-					rimeaddr_set_node_addr(&addr);
+					rimeaddr_copy(neighbor_addr++, &addr);
 				}
 
-				ep.neighbor.u8[0] = 3;
-				ep.neighbor.u8[1] = 0;
-				ep.hops = 3;
-				neighbors_add(&ns, &ep.neighbor);
-				queue_buffer_push_front(&g_properties.exit_paths, &ep);
+				setup_parse(sp);
 
-				ec_update_neighbors(&emergency_connection, &ns);
+				ec_set_neighbors(&g_np.c, &g_np.ns);
+				LOG("Im now node 3.0\n");
+			} else if(strcmp(data, "4") == 0) {
 				LOG("Im now node 4.0\n");
 			} else if(strcmp(data, "5") == 0) {
+				LOG("Im now node 5.0\n");
+			} else if(strcmp(data, "init") == 0) {
+				rimeaddr_t addr = { {0xFE, 0xFE} };
+				LOG("Initing\n");
+				struct sensor_packet sp = {INITIALIZE_BEST_PATHS_PACKET};
+				ec_recv(NULL, &addr, &addr, 0, 0, &sp, sizeof(struct sensor_packet));
 			} else {
 				LOG("ERROR: GOT MESSAGE: %s, len: %d\n", (char*)data, strlen(data));
 			}
-		}
+#endif
+		} 
+	//	else if (ev == sensor_timer_update) {
+	//		if (!g_np.state.has_sensed_emergency && is_emergency()) {
+	//			struct emergency_packet ep;
+	//			ep.type = EMERGENCY_PACKET;
+	//			ep.coord = coordinate_node;
+	//			queue_buffer_push_front(&g_np.emergency_coords, &coordinate_node);
+
+	//			ec_async_broadcast_ns(c, &rimeaddr_node_addr,
+	//					&rimeaddr_node_addr, 0, g_np.seqno++, &ep,
+	//					sizeof(struct emergency_packet));
+
+	//			broadcast_best_path();
+
+	//			/* Leader node should synchronize every 30 sec. New leader
+	//			 * should be elected if we hit timeout of 60 sec. */
+	//			ec_timesynch_network(c);
+
+	//			leds_red(1);
+	//			blinking_on();
+	//			g_np.state.has_sensed_emergency = 1;
+	//			g_np.state.is_aware_of_emergency = 1;
+	//		} else if (g_np.state.is_aware_of_emergency) {
+	//			if (sensor_critical_change()) {
+	//				/* Critical sensor reading changes (e.g. if path gets
+	//				 * congested) */
+	//				broadcast_new_path();
+	//			}
+	//		}
+	//	}
 	}
 
 	PROCESS_END();

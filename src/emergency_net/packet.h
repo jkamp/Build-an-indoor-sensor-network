@@ -5,8 +5,7 @@
 
 #define MAX_PACKET_SIZE 24
 
-#define IS_DATA(packet) (((packet)->hdr.type_and_flags & 0x20) == DATA)
-#define IS_ACK(packet) (((packet)->hdr.type_and_flags & 0x20) == ACK)
+#define IS_PACKET_FLAG_SET(packet, flag) (((packet)->hdr.type_and_flags & (flag)) == (flag))
 
 #define PACKET_TYPE(packet) (((packet)->hdr.type_and_flags & 0xC0))
 
@@ -24,17 +23,16 @@
 enum packet_type {
 	BROADCAST = 0x00,
 	MULTICAST = 0x40,
-	UNICAST = 0x80,
-	MESH = 0xC0
+	UNICAST = 0x80
 };
 
 enum packet_flags {
-	DATA = 0x00,
-	ACK = 0x20
+	ACK = 0x20,
+	TIMESYNCH = 0x10
 };
 
 struct header {
-	/* 2 bits type, 1 bit data/ack, 5 reserved */
+	/* 2 bits type, 1 bit ack, 1 bit timesynch, 4 reserved */
 	uint8_t type_and_flags;
 	uint8_t hops;
 	rimeaddr_t originator; /* original sender (origin) */
@@ -49,7 +47,6 @@ struct packet {
 
 struct broadcast_packet {
 	struct header hdr;
-	/* stupid c89 doesnt allow flexible arrays */
 	uint8_t data[1];
 };
 

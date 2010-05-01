@@ -696,9 +696,6 @@ cc2420_read(void *buf, unsigned short bufsize)
 	t.time +
 	setup_time_for_transmission +
 	(total_time_for_transmission * (len - 2)) / total_transmission_len;
-//	  printf("--- interru: %u t.time: %u, setup_time: %u, total_time: %u, total_transmission: %u\n",
-//			  interrupt_time, t.time, setup_time_for_transmission, total_time_for_transmission, 
-//			  total_transmission_len);
     
       cc2420_authority_level_of_sender = t.authority_level;
       interrupt_time_set = 0;
