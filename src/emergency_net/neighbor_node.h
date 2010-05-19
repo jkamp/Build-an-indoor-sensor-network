@@ -37,6 +37,9 @@ void neighbor_node_set_coordinate(struct neighbor_node *nn,
 		const struct coordinate *coord);
 
 static
+const struct coordinate* neighbor_node_coord(const struct neighbor_node *nn);
+
+static
 metric_t neighbor_node_metric(const struct neighbor_node *nn);
 
 static
@@ -76,6 +79,11 @@ void neighbor_node_set_coordinate(struct neighbor_node *nn,
 static inline
 void neighbor_node_set_best_path(struct neighbor_node *nn, const struct best_path *bp) {
 	nn->bp = *bp;
+}
+
+static inline
+const struct coordinate* neighbor_node_coord(const struct neighbor_node *nn) {
+	return &nn->coord;
 }
 
 static inline

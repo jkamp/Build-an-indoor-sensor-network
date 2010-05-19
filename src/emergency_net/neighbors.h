@@ -46,11 +46,13 @@ uint8_t neighbors_size(const struct neighbors *ns) {
 
 static inline
 const struct neighbor_node* neighbors_begin(const struct neighbors *ns) {
-	return (const struct neighbor_node*)queue_buffer_begin((struct queue_buffer*)&ns->nbuf);
+	return (const struct neighbor_node*)queue_buffer_begin((struct
+				queue_buffer*)&ns->nbuf);
 }
 
 static inline
 const struct neighbor_node* neighbors_next(const struct neighbors *ns) {
-	return (const struct neighbor_node*)queue_buffer_next((struct queue_buffer*)&ns->nbuf);
+	return (const struct neighbor_node*)queue_buffer_next((struct
+				queue_buffer*)&ns->nbuf);
 }
 #endif

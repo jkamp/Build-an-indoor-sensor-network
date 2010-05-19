@@ -33,7 +33,7 @@
       </manifest>
     </jar>
     <copy todir="${dist}" file="collect-init.script"/>
-    <copy todir="${dist}" file="sky-shell.ihex"/>
+	<!--<copy todir="${dist}" file="sky-shell.ihex"/>-->
     <mkdir dir="${dist}/lib"/>
     <copy todir="${dist}/lib">
       <fileset dir="${lib}">

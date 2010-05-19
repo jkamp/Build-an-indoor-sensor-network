@@ -353,8 +353,8 @@ void ec_async_broadcast_ns(struct ec *c, const rimeaddr_t *originator,
 	struct broadcast_packet bp;
 
 	init_broadcast_packet(&bp, 0, hops, originator, sender, seqno);
-	LOG("User submit broadcast: ");
-	DEBUG_PACKET((&bp));
+//	LOG("User submit broadcast: ");
+//	DEBUG_PACKET((&bp));
 
 	packet_buffer_broadcast_packet(&c->sq, &bp, data, data_len, c->ns,
 			MSG_PRIO_USER_MSG);
@@ -381,6 +381,8 @@ static void timesynch(void *ptr) {
 
 	set_timer_for_next_packet(c);
 	ctimer_set(&c->ts.timer, TIMESYNCH_LEADER_UPDATE, timesynch, c);
+	
+	c->cb->timesynch(c);
 }
 
 static void timesynch_recv(struct abc_conn *bc) {
