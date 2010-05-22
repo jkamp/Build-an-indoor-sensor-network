@@ -5,9 +5,9 @@
 
 #define MAX_PACKET_SIZE 24
 
-#define IS_PACKET_FLAG_SET(packet, flag) (((packet)->hdr.type_and_flags & (flag)) == (flag))
+#define IS_PACKET_FLAG_SET(packet, flag) (((packet)->hdr.flags & (flag)) == (flag))
 
-#define PACKET_TYPE(packet) (((packet)->hdr.type_and_flags & 0xC0))
+#define PACKET_TYPE(packet) (((packet)->hdr.flags & 0x30))
 
 #define PACKET_HDR_SIZE (sizeof(struct packet)-sizeof(uint8_t))
 #define BROADCAST_PACKET_HDR_SIZE (sizeof(struct broadcast_packet)-sizeof(uint8_t))
@@ -16,28 +16,25 @@
 #define SLIM_PACKET_SIZE (sizeof(struct slim_packet))
 
 #define DEBUG_PACKET(p) LOG("type:%x, hops: %d, o:%d.%d, s:%d.%d, seqno:%d\n", \
-			(p)->hdr.type_and_flags, (p)->hdr.hops,  \
+			(p)->hdr.flags, (p)->hdr.hops,  \
 			(p)->hdr.originator.u8[0], (p)->hdr.originator.u8[1], \
 			(p)->hdr.sender.u8[0], (p)->hdr.sender.u8[1], (p)->hdr.seqno)
 
-enum packet_type {
-	BROADCAST = 0x00,
-	MULTICAST = 0x40,
-	UNICAST = 0x80
-};
-
 enum packet_flags {
-	ACK = 0x20,
-	TIMESYNCH = 0x10
+	ACK = 0x80,
+	TIMESYNCH = 0x40,
+
+	BROADCAST = 0x30,
+	UNICAST = 0x20,
+	MULTICAST = 0x10
 };
 
 struct header {
-	/* 2 bits type, 1 bit ack, 1 bit timesynch, 4 reserved */
-	uint8_t type_and_flags;
-	uint8_t hops;
-	rimeaddr_t originator; /* original sender (origin) */
+	uint8_t flags;
+	uint8_t seqno;
 	rimeaddr_t sender; /* forwarder */
-	uint8_t seqno;  /* originator seqno */
+	rimeaddr_t originator; /* original sender (origin) */
+	uint8_t hops;
 };
 
 struct packet {
@@ -68,7 +65,7 @@ struct slim_packet {
 	uint8_t seqno;
 };
 
-void init_packet(struct packet *p, uint8_t type_and_flags,
+void init_packet(struct packet *p, uint8_t flags,
 	   	uint8_t hops, const rimeaddr_t *originator,
 		const rimeaddr_t *sender, uint8_t seqno);
 

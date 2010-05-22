@@ -25,11 +25,11 @@ int slim_packet_to_packet_cmp(const void *queued_item, const void *supplied_item
 		l->seqno == r->hdr.seqno;
 }
 
-void init_packet(struct packet *p, uint8_t type_and_flags,
+void init_packet(struct packet *p, uint8_t flags,
 	   	uint8_t hops, const rimeaddr_t *originator,
 		const rimeaddr_t *sender, uint8_t seqno) {
 
-	p->hdr.type_and_flags = type_and_flags;
+	p->hdr.flags = flags;
 	p->hdr.hops = hops;
 	rimeaddr_copy(&p->hdr.originator, originator);
 	rimeaddr_copy(&p->hdr.sender, sender);

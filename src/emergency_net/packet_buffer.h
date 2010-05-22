@@ -6,7 +6,7 @@
 
 #include "base/queue_buffer.h"
 
-/* TODO: change name to packet_buffer_ns or something */
+/* XXX: change name to packet_send_buffer or something */
 
 #define HIGHEST_PRIO 0
 #define NUM_PRIO_LEVELS 3
@@ -28,6 +28,7 @@ struct buffered_packet {
 	QUEUE_BUFFER(unacked_ns, sizeof(rimeaddr_t*), MAX_NEIGHBORS);
 	uint8_t times_sent; 
 	uint8_t data_len; 
+	void (*send_fn)(void *ptr);
 	struct packet p;
 	uint8_t data[1];
 };
@@ -42,17 +43,17 @@ void packet_buffer_init(struct packet_buffer *pb);
 struct buffered_packet*
 packet_buffer_packet(struct packet_buffer *pb, const struct packet *p, 
 		const void *data, uint8_t data_len, const struct neighbors *ns, 
-		int prio);
+		void (*send_fn)(void *ptr), int prio);
 
 struct buffered_packet*
 packet_buffer_broadcast_packet(struct packet_buffer *pb, 
 		const struct broadcast_packet *bp, const void *data, uint8_t data_len,
-		const struct neighbors *ns, int prio);
+		const struct neighbors *ns, void (*send_fn)(void *ptr), int prio);
 
 struct buffered_packet*
 packet_buffer_unicast_packet(struct packet_buffer *pb, 
 		const struct unicast_packet *up, const void *data, uint8_t data_len,
-		const struct neighbors *ns, int prio);
+		const struct neighbors *ns, void (*send_fn)(void *ptr), int prio);
 
 static
 void packet_buffer_neighbor_acked(struct buffered_packet *bp, const rimeaddr_t *addr);
@@ -83,6 +84,9 @@ void* packet_buffer_get_data(struct buffered_packet *bp);
 
 static
 void packet_buffer_increment_times_sent(struct buffered_packet *bp);
+
+static
+void (*packet_buffer_send_fn(struct buffered_packet *bp)) (void*);
 
 struct buffered_packet*
 packet_buffer_get_packet_for_sending(struct packet_buffer *pb);
@@ -125,6 +129,11 @@ void* packet_buffer_get_data(struct buffered_packet *bp) {
 static inline
 void packet_buffer_increment_times_sent(struct buffered_packet *bp) {
 	++bp->times_sent;
+}
+
+static inline
+void (*packet_buffer_send_fn(struct buffered_packet *bp)) (void*) {
+	return bp->send_fn;
 }
 
 static inline

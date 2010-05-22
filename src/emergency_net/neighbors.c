@@ -18,7 +18,7 @@ void neighbors_add(struct neighbors *ns, const rimeaddr_t *addr) {
 	struct neighbor_node nn;
 	memset(&nn, 0, sizeof(struct neighbor_node));
 	neighbor_node_set_addr(&nn, addr);
-	neighbor_node_set_best_path(&nn, &best_path_max);
+	neighbor_node_set_best_path(&nn, &neighbor_node_best_path_max);
 
 	{
 		struct neighbor_node *ret = 

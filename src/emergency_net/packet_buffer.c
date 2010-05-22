@@ -45,7 +45,7 @@ void copy_neighbors(struct buffered_packet *bp, const struct neighbors *ns) {
 struct buffered_packet*
 packet_buffer_packet(struct packet_buffer *pb, const struct packet *p, 
 		const void *data, uint8_t data_len, const struct neighbors *ns, 
-		int prio) {
+		void (*send_fn)(void *ptr), int prio) {
 	struct buffered_packet *s = allocate_buffered_packet(pb, prio);
 
 	if (s != NULL) {
@@ -55,6 +55,7 @@ packet_buffer_packet(struct packet_buffer *pb, const struct packet *p,
 		}
 		s->times_sent = 0;
 		s->data_len = data_len;
+		s->send_fn = send_fn;
 		ASSERT(PACKET_HDR_SIZE+data_len < MAX_PACKET_SIZE);
 		memcpy(&s->p, p, PACKET_HDR_SIZE);
 		memcpy(s->data, data, data_len);
@@ -68,7 +69,7 @@ packet_buffer_packet(struct packet_buffer *pb, const struct packet *p,
 struct buffered_packet*
 packet_buffer_broadcast_packet(struct packet_buffer *pb, 
 		const struct broadcast_packet *bp, const void *data, uint8_t data_len,
-		const struct neighbors *ns, int prio) {
+		const struct neighbors *ns, void (*send_fn)(void *ptr), int prio) {
 	struct buffered_packet *s = allocate_buffered_packet(pb, prio);
 
 	if (s != NULL) {
@@ -79,6 +80,7 @@ packet_buffer_broadcast_packet(struct packet_buffer *pb,
 		}
 		s->times_sent = 0;
 		s->data_len = data_len;
+		s->send_fn = send_fn;
 		ASSERT(BROADCAST_PACKET_HDR_SIZE+data_len < MAX_PACKET_SIZE);
 		memcpy(tmp, bp, BROADCAST_PACKET_HDR_SIZE);
 		memcpy(tmp->data, data, data_len);
@@ -92,7 +94,7 @@ packet_buffer_broadcast_packet(struct packet_buffer *pb,
 struct buffered_packet*
 packet_buffer_unicast_packet(struct packet_buffer *pb, 
 		const struct unicast_packet *up, const void *data, uint8_t data_len,
-		const struct neighbors *ns, int prio) {
+		const struct neighbors *ns, void (*send_fn)(void *ptr), int prio) {
 	struct buffered_packet *s = allocate_buffered_packet(pb, prio);
 
 	if (s != NULL) {
@@ -103,6 +105,7 @@ packet_buffer_unicast_packet(struct packet_buffer *pb,
 		}
 		s->times_sent = 0;
 		s->data_len = data_len;
+		s->send_fn = send_fn;
 		ASSERT(UNICAST_PACKET_HDR_SIZE+data_len < MAX_PACKET_SIZE);
 		memcpy(tmp, up, UNICAST_PACKET_HDR_SIZE);
 		memcpy(tmp->data, data, data_len);

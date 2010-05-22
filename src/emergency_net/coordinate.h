@@ -13,6 +13,9 @@ uint16_t coordinate_distance(const struct coordinate *from,
 
 void coordinate_set_node_coord(const struct coordinate *coord);
 
+int coordinate_cmp(const struct coordinate *lhs, 
+		const struct coordinate *rhs);
+
 extern struct coordinate coordinate_node;
 extern const struct coordinate coordinate_null;
 

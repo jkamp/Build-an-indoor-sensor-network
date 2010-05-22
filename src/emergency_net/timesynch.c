@@ -63,8 +63,7 @@ incoming_packet(void)
 			if(cc2420_authority_level_of_sender < authority_level) {
 				adjust_offset(cc2420_time_of_departure, cc2420_time_of_arrival);
 			} else if(cc2420_authority_level_of_sender == authority_level) {
-				/* FIXME(johan): overflow. */
-				if (p->hdr.seqno > authority_seqno) {
+				if (p->hdr.seqno > authority_seqno || p->hdr.seqno < authority_seqno/8 /*overflow*/) {
 					adjust_offset(cc2420_time_of_departure, cc2420_time_of_arrival);
 				}
 			}
