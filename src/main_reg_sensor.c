@@ -14,6 +14,8 @@
 #include "emergency_net/emergency_conn.h"
 #include "emergency_net/neighbors.h"
 
+#include "base/node_properties.h"
+
 #include "base/log.h"
 
 /* 0 means no simulation */
@@ -107,6 +109,7 @@ struct node_properties {
 		int8_t is_exit_node;
 		int8_t is_awaiting_setup_packet;
 		int8_t has_sent_node_info;
+		int8_t is_reset_mode;
 	} state;
 
 	metric_t current_sensors_metric;
@@ -163,7 +166,8 @@ blinking_update() {
 				NULL);
 
 		ASSERT(g_np.bpn != NULL);
-		g_np.blinking.state = (g_np.bpn->bp.hops+1+blinking_sequences_next) %
+		g_np.blinking.state =
+			(neighbor_node_hops(g_np.bpn)+1+blinking_sequences_next) %
 			BLINKING_SEQUENCE_LENGTH;
 	} 
 }
@@ -216,6 +220,10 @@ void setup_parse(const struct setup_packet *sp) {
 		}
 	}
 	LOG("\n");
+
+	LOG("Burning info to flash\n");
+	node_properties_burn(sp, SETUP_PACKET_SIZE + 
+			sp->num_neighbors * sizeof(rimeaddr_t));
 }
 
 static inline metric_t
@@ -294,8 +302,8 @@ broadcast_best_path() {
 			0, g_np.seqno++, &bpup, sizeof(struct best_path_update_packet));
 }
 
-static void
-broadcast_new_path_if_changed(const struct neighbor_node *sender) {
+static int
+update_bpn_and_broadcast_new_path_if_changed(const struct neighbor_node *sender) {
 	const struct neighbor_node *best = find_best_exit_path_neighbor();
 	ASSERT(best != NULL);
 
@@ -304,15 +312,18 @@ broadcast_new_path_if_changed(const struct neighbor_node *sender) {
 		/* Neighbor now has the new best path */
 		g_np.bpn = best;
 		broadcast_best_path();
-		blinking_update();
+		return 1;
 	} else if (sender == best) {
 		/* Neighbor updated its metrics. Broadcast changes. */
+		ASSERT(g_np.bpn == sender);
 		broadcast_best_path();
-		blinking_update();
+		return 1;
 	}
+
+	return 0;
 }
 
-static void send_node_info() {
+static void update_bpn_and_send_node_info() {
 	struct node_info_packet nip;
 	const struct neighbor_node *best =
 		find_best_exit_path_neighbor();
@@ -334,7 +345,47 @@ static void send_node_info() {
 	ec_async_broadcast_ns(&g_np.c,
 			&rimeaddr_node_addr, &rimeaddr_node_addr, 0,
 			g_np.seqno++, &nip, sizeof(struct node_info_packet));
-	g_np.state.has_sent_node_info = 1;
+}
+
+static void initialize_best_path_packet_handler() {
+	ec_timesynch_on(&g_np.c);
+
+	if (g_np.state.is_reset_mode) {
+		g_np.state.is_reset_mode = 0;
+		leds_off(LEDS_ALL);
+		if(g_np.state.is_exit_node) {
+			leds_green(1);
+		}
+	}
+	if(g_np.state.is_exit_node) {
+		ASSERT(!g_np.state.has_sent_node_info);
+		update_bpn_and_send_node_info();
+		g_np.state.has_sent_node_info = 1;
+	}
+
+}
+
+static void reset_system_packet_handler() {
+	struct neighbor_node *nn = (struct neighbor_node*)neighbors_begin(&g_np.ns);
+	leds_on(LEDS_ALL);
+
+	for(; nn != NULL; nn = (struct neighbor_node*)neighbors_next(&g_np.ns)) {
+		neighbor_node_set_best_path(nn, &neighbor_node_best_path_max);
+		neighbor_node_set_coordinate(nn, &coordinate_null);
+	}
+
+	g_np.bpn = NULL;
+	g_np.state.is_blinking = 0;
+	g_np.state.has_sensed_emergency = 0;
+	/*g_np.state.is_exit_node = 0;*/
+	g_np.state.has_sent_node_info = 0;
+
+	queue_buffer_clear(&g_np.emergency_coords);
+	g_np.current_sensors_metric = 0;
+
+	ec_timesynch_off(&g_np.c);
+
+	g_np.state.is_reset_mode = 1;
 }
 
 /* Received packets from everyone (whose packets are sent with
@@ -343,6 +394,13 @@ static void ec_recv_broadcasts(struct ec *c, const rimeaddr_t *originator,
 		const rimeaddr_t *sender, uint8_t hops, uint8_t seqno, 
 		const void *data, uint8_t data_len) {
 	const struct sensor_packet *p = (struct sensor_packet*)data;
+
+	/* ignore every other packet if in reset mode */
+	if(g_np.state.is_reset_mode) {
+		if(p->type != INITIALIZE_BEST_PATHS_PACKET) {
+			return;
+		}
+	}
 
 	switch(p->type) {
 		case EMERGENCY_PACKET:
@@ -363,29 +421,22 @@ static void ec_recv_broadcasts(struct ec *c, const rimeaddr_t *originator,
 					originator, &rimeaddr_node_addr, hops+1,
 					seqno, data, data_len);
 
-			if(g_np.state.is_exit_node) {
-				send_node_info();
-			}
+			initialize_best_path_packet_handler();
 			break;
 		case SETUP_PACKET:
 			LOG("RECV SETUP_PACKET\n");
 			if (g_np.state.is_awaiting_setup_packet) {
-				leds_blink();
+				g_np.state.is_awaiting_setup_packet = 0;
 				setup_parse((const struct setup_packet*)p);
+				leds_blink();
 			}
 			break;
 		case RESET_SYSTEM_PACKET:
-			{
-				ec_async_broadcast_ns(&g_np.c,
-						originator, &rimeaddr_node_addr, hops+1,
-						seqno, data, data_len);
-				g_np.state.is_blinking = 0;
-				g_np.state.has_sensed_emergency = 0;
-				g_np.state.is_exit_node = 0;
-				g_np.state.has_sent_node_info = 0;
-				leds_off(LEDS_ALL);
-				ASSERT(0); /*not implemented yet*/
-			}
+			LOG("RECV RESET_SYSTEM_PACKET\n");
+			ec_async_broadcast_ns(&g_np.c,
+					originator, &rimeaddr_node_addr, hops+1,
+					seqno, data, data_len);
+			reset_system_packet_handler();
 			break;
 		default:
 			LOG("Unknown application packet type\n");
@@ -398,6 +449,13 @@ static void ec_recv_neighbors(struct ec *c, const rimeaddr_t *originator,
 		const rimeaddr_t *sender, uint8_t hops, uint8_t seqno, 
 		const void *data, uint8_t data_len) {
 	const struct sensor_packet *p = (struct sensor_packet*)data;
+
+	/* ignore every other packet if in reset mode */
+	if(g_np.state.is_reset_mode) {
+		if(p->type != INITIALIZE_BEST_PATHS_PACKET) {
+			return;
+		}
+	}
 
 	switch(p->type) {
 		case BEST_PATH_UPDATE_PACKET:
@@ -417,7 +475,9 @@ static void ec_recv_neighbors(struct ec *c, const rimeaddr_t *originator,
 				neighbor_node_set_best_path(nn, &bpup->bp);
 
 				/* The shortest path could have changed. */
-				broadcast_new_path_if_changed(nn);
+				if(update_bpn_and_broadcast_new_path_if_changed(nn)) {
+					blinking_update();
+				}
 			}
 			break;
 		case INITIALIZE_BEST_PATHS_PACKET:
@@ -426,15 +486,13 @@ static void ec_recv_neighbors(struct ec *c, const rimeaddr_t *originator,
 					originator, &rimeaddr_node_addr, hops+1,
 					seqno, data, data_len);
 
-			if(g_np.state.is_exit_node) {
-				send_node_info();
-			}
+			initialize_best_path_packet_handler();
 			break;
 		case NODE_INFO_PACKET:
 			{
 				const struct node_info_packet *nip = (struct node_info_packet*)p;
-				struct neighbor_node *nn = neighbors_find_neighbor_node(&g_np.ns, sender);
-				ASSERT(nn != NULL);
+				struct neighbor_node *nn = 
+					neighbors_find_neighbor_node(&g_np.ns, sender);
 				LOG("RECV NODE_INFO_PACKET: coord: (%d,%d), metric: %d, "
 						"points_to: %d.%d, hops: %d\n",
 						nip->coord.x, nip->coord.y,
@@ -442,18 +500,27 @@ static void ec_recv_neighbors(struct ec *c, const rimeaddr_t *originator,
 					   	nip->bp.points_to.u8[0],
 						nip->bp.points_to.u8[1],
 						nip->bp.hops);
+				ASSERT(nn != NULL);
 				neighbor_node_set_coordinate(nn, &nip->coord);
 				neighbor_node_set_best_path(nn, &nip->bp);
 
 				if (!g_np.state.has_sent_node_info) {
-					send_node_info();
+					update_bpn_and_send_node_info();
+					g_np.state.has_sent_node_info = 1;
 				} else {
 					/* send update only if we found a better path */
 					if (!g_np.state.is_exit_node) {
-						broadcast_new_path_if_changed(nn);
+						update_bpn_and_broadcast_new_path_if_changed(nn);
 					}
 				}
 			}
+			break;
+		case RESET_SYSTEM_PACKET:
+			LOG("RECV RESET_SYSTEM_PACKET\n");
+			ec_async_broadcast_ns(&g_np.c,
+					originator, &rimeaddr_node_addr, hops+1,
+					seqno, data, data_len);
+			reset_system_packet_handler();
 			break;
 		default:
 			LOG("Unknown application packet type\n");
@@ -496,15 +563,14 @@ int emergency_poll() {
 }
 
 static
-int abrupt_metric_change_poll() {
-	metric_t metric;
+int abrupt_metric_change_poll(metric_t *metric) {
 	struct sensor_readings r;
 	read_sensors(&r);
 
-	metric = sensor_readings_to_metric(&r);
+	*metric = sensor_readings_to_metric(&r);
 
-	if(abs(metric - g_np.current_sensors_metric) > ABRUPT_METRIC_CHANGE_THRESHOLD) {
-		g_np.current_sensors_metric = metric;
+	if(abs(*metric - g_np.current_sensors_metric) > 
+			ABRUPT_METRIC_CHANGE_THRESHOLD) {
 		return 1;
 	}
 
@@ -525,8 +591,19 @@ PROCESS_THREAD(fire_process, ev, data) {
 	PROCESS_BEGIN();
 	memset(&g_np, 0, sizeof(struct node_properties));
 	neighbors_init(&g_np.ns);
+	QUEUE_BUFFER_INIT_WITH_STRUCT(&g_np, emergency_coords, 
+			sizeof(struct coordinate), MAX_FIRE_COORDINATES);
 	ec_open(&g_np.c, EMERGENCYNET_CHANNEL, &ec_cb);
-	ec_timesynch_on(&g_np.c);
+	{
+#define BUFSIZE (SETUP_PACKET_SIZE + MAX_NEIGHBORS*sizeof(rimeaddr_t))
+		char buf[BUFSIZE] = {0};
+		struct setup_packet *sp = (struct setup_packet*)buf;
+		if (node_properties_restore(buf, BUFSIZE)) {
+			LOG("Found info on flash\n");
+			setup_parse(sp);
+		}
+#undef BUFSIZE
+	}
 
 	SENSORS_ACTIVATE(button_sensor);
 
@@ -535,37 +612,10 @@ PROCESS_THREAD(fire_process, ev, data) {
 		PROCESS_WAIT_EVENT();
 
 		if (ev == sensors_event) {
-#ifdef EMERGENCY_COOJA_SIMULATION
 			if (data == &button_sensor) {
-				/* simulate emergency */
-				struct emergency_packet ep;
-				LOG("I SENSED EMERGENCY\n");
-				ep.type = EMERGENCY_PACKET;
-				ep.source = coordinate_node;
-				queue_buffer_push_front(&g_np.emergency_coords, &coordinate_node);
-
-				//g_np.state.has_sensed_emergency = 1;
-				//g_np.current_metric += 100;
-
-				ec_async_broadcast_ns(&g_np.c, &rimeaddr_node_addr,
-						&rimeaddr_node_addr, 0, g_np.seqno++, &ep,
-						sizeof(struct emergency_packet));
-
-				broadcast_best_path();
-
-				/* Leader node should synchronize every 30 sec. New leader
-				 * should be elected if we hit timeout of 60 sec. */
-				ec_timesynch_network(&g_np.c);
-
-				leds_red(1);
-				blinking_init();
-			}
-#else
-			if (data == &button_sensor) {
-				leds_on();
+				leds_on(LEDS_ALL);
 				g_np.state.is_awaiting_setup_packet = 1;
 			}
-#endif
 		} else if (ev == serial_line_event_message && data != NULL) {
 #if EMERGENCY_COOJA_SIMULATION == 1
 #include "cooja_simulation1.impl"
@@ -584,7 +634,12 @@ PROCESS_THREAD(fire_process, ev, data) {
 				if (emergency_poll()) {
 					/* we sensed emergency! */
 					struct emergency_packet ep;
+					struct sensor_readings r;
 					LOG("SENSED EMERGENCY\n");
+
+					read_sensors(&r);
+					g_np.current_sensors_metric = sensor_readings_to_metric(&r);
+
 					ep.type = EMERGENCY_PACKET;
 					ep.source = coordinate_node;
 
@@ -603,7 +658,9 @@ PROCESS_THREAD(fire_process, ev, data) {
 					g_np.state.has_sensed_emergency = 1;
 				}
 			} else {
-				if (abrupt_metric_change_poll()) {
+				static metric_t current_metric;
+				if (abrupt_metric_change_poll(&current_metric)) {
+					g_np.current_sensors_metric = current_metric;
 					broadcast_best_path();
 					if(emergency_poll()) {
 						leds_red(1);

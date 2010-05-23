@@ -1,1 +1,1 @@
-PROJECT_SOURCEFILES += queue_buffer.c
+PROJECT_SOURCEFILES += queue_buffer.c node_properties.c

@@ -33,7 +33,7 @@ const struct neighbor_node* neighbors_next(const struct neighbors *ns);
 struct neighbor_node* 
 neighbors_find_neighbor_node(struct neighbors *ns, const rimeaddr_t *addr);
 
-//void neighbors_warn(struct neighbors *ns, const rimeaddr_t *addr);
+/*void neighbors_warn(struct neighbors *ns, const rimeaddr_t *addr);*/
 
 void neighbors_clear(struct neighbors *ns);
 

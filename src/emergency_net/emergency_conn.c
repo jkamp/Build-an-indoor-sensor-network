@@ -559,8 +559,9 @@ void ec_timesynch_network(struct ec *c) {
 
 void ec_timesynch_on(struct ec *c) {
 	c->ts.is_on = 1;
-	set_authority_level(AUTHORITY_LEVEL_MAX);
 	c->ts.seqno = 0;
+	set_authority_level(AUTHORITY_LEVEL_MAX);
+	set_authority_seqno(0);
 }
 
 void ec_timesynch_off(struct ec *c) {

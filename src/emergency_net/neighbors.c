@@ -40,13 +40,13 @@ int neighbors_is_neighbor(const struct neighbors *ns, const rimeaddr_t *addr) {
 			neighbor_to_addr_cmp) != NULL;
 }
 
-//void neighbors_warn(struct neighbors *ns, const rimeaddr_t *addr) {
-//	struct neighbor_node *nn = (struct neighbor_node*)
-//		queue_buffer_find(&ns->nbuf, addr, neighbor_to_addr_cmp);
-//	ASSERT(nn != NULL);
-//	++nn->warnings;
-//	LOG("Neighbor %d.%d warnings: %d\n", nn->addr.u8[0], nn->addr.u8[1], nn->warnings);
-//}
+/*void neighbors_warn(struct neighbors *ns, const rimeaddr_t *addr) {
+	struct neighbor_node *nn = (struct neighbor_node*)
+		queue_buffer_find(&ns->nbuf, addr, neighbor_to_addr_cmp);
+	ASSERT(nn != NULL);
+	++nn->warnings;
+	LOG("Neighbor %d.%d warnings: %d\n", nn->addr.u8[0], nn->addr.u8[1], nn->warnings);
+}*/
 
 struct neighbor_node* 
 neighbors_find_neighbor_node(struct neighbors *ns, const rimeaddr_t *addr) {
