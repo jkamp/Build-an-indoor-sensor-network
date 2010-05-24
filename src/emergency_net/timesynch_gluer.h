@@ -11,13 +11,14 @@ typedef uint8_t authority_t;
 
 void set_authority_level(authority_t al);
 void set_authority_seqno(uint8_t as);
+void set_timesynch_channel(uint8_t ch);
 
 static
 authority_t timesynch_rimeaddr_to_authority(const rimeaddr_t *addr);
 
 extern authority_t authority_level;
 extern uint8_t authority_seqno;
-
+extern uint8_t timesynch_channel;
 
 
 static inline

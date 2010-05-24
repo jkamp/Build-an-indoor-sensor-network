@@ -58,13 +58,16 @@ adjust_offset(rtimer_clock_t authoritative_time, rtimer_clock_t local_time)
 incoming_packet(void)
 {
 	if(packetbuf_totlen() != 0) {
-		const struct packet *p = (struct packet*)(((char*)packetbuf_dataptr())+2);
-		if(IS_PACKET_FLAG_SET(p, TIMESYNCH)) {
-			if(cc2420_authority_level_of_sender < authority_level) {
-				adjust_offset(cc2420_time_of_departure, cc2420_time_of_arrival);
-			} else if(cc2420_authority_level_of_sender == authority_level) {
-				if (p->hdr.seqno > authority_seqno || p->hdr.seqno < authority_seqno/8 /*overflow*/) {
+		const uint8_t *channel = (uint8_t*)packetbuf_dataptr();
+		if(*channel == timesynch_channel) {
+			const struct packet *p = (struct packet*)(((char*)packetbuf_dataptr())+2);
+			if(IS_PACKET_FLAG_SET(p, TIMESYNCH)) {
+				if(cc2420_authority_level_of_sender < authority_level) {
 					adjust_offset(cc2420_time_of_departure, cc2420_time_of_arrival);
+				} else if(cc2420_authority_level_of_sender == authority_level) {
+					if (p->hdr.seqno > authority_seqno || p->hdr.seqno < authority_seqno/8 /*overflow*/) {
+						adjust_offset(cc2420_time_of_departure, cc2420_time_of_arrival);
+					}
 				}
 			}
 		}

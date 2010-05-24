@@ -31,8 +31,6 @@ if (strcmp(data, "1") == 0) {
 
 	ec_set_neighbors(&g_np.c, &g_np.ns);
 
-	LOG("Im now node %d.%d\n", rimeaddr_node_addr.u8[0],
-			rimeaddr_node_addr.u8[1]);
 } else if(strcmp(data, "2") == 0) {
 	uint8_t tmp[SETUP_PACKET_SIZE+2*sizeof(rimeaddr_t)] = {0};
 	struct setup_packet *sp = (struct setup_packet*)tmp;
@@ -52,7 +50,7 @@ if (strcmp(data, "1") == 0) {
 	}
 
 	sp->is_exit_node = 0;
-	sp->num_neighbors = 1;
+	sp->num_neighbors = 2;
 
 	{
 		rimeaddr_t addr;
@@ -61,16 +59,14 @@ if (strcmp(data, "1") == 0) {
 		addr.u8[1] = 0;
 		rimeaddr_copy(neighbor_addr++, &addr);
 
-		//	addr.u8[0] = 3;
-		//	addr.u8[1] = 0;
-		//	rimeaddr_copy(neighbor_addr++, &addr);
+		addr.u8[0] = 3;
+		addr.u8[1] = 0;
+		rimeaddr_copy(neighbor_addr++, &addr);
 	}
 
 	setup_parse(sp);
 
 	ec_set_neighbors(&g_np.c, &g_np.ns);
-	LOG("Im now node %d.%d\n", rimeaddr_node_addr.u8[0],
-			rimeaddr_node_addr.u8[1]);
 } else if(strcmp(data, "3") == 0) {
 	uint8_t tmp[SETUP_PACKET_SIZE+1*sizeof(rimeaddr_t)] = {0};
 	struct setup_packet *sp = (struct setup_packet*)tmp;
@@ -103,12 +99,3 @@ if (strcmp(data, "1") == 0) {
 	setup_parse(sp);
 
 	ec_set_neighbors(&g_np.c, &g_np.ns);
-	LOG("Im now node 3.0\n");
-} else if(strcmp(data, "init") == 0) {
-	rimeaddr_t addr = { {0xFE, 0xFE} };
-	LOG("Initing\n");
-	struct sensor_packet sp = {INITIALIZE_BEST_PATHS_PACKET};
-	ec_recv(NULL, &addr, &addr, 0, 0, &sp, sizeof(struct sensor_packet));
-} else {
-	LOG("ERROR: GOT MESSAGE: %s, len: %d\n", (char*)data, strlen(data));
-}

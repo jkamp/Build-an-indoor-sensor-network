@@ -13,12 +13,19 @@
 #define BROADCAST_PACKET_HDR_SIZE (sizeof(struct broadcast_packet)-sizeof(uint8_t))
 #define MULTICAST_PACKET_HDR_SIZE (sizeof(struct multicast_packet)-sizeof(uint8_t))
 #define UNICAST_PACKET_HDR_SIZE (sizeof(struct unicast_packet)-sizeof(uint8_t))
+#define MESH_PACKET_HDR_SIZE (sizeof(struct mesh_packet)-sizeof(uint8_t))
 #define SLIM_PACKET_SIZE (sizeof(struct slim_packet))
 
 #define DEBUG_PACKET(p) LOG("type:%x, hops: %d, o:%d.%d, s:%d.%d, seqno:%d\n", \
 			(p)->hdr.flags, (p)->hdr.hops,  \
 			(p)->hdr.originator.u8[0], (p)->hdr.originator.u8[1], \
 			(p)->hdr.sender.u8[0], (p)->hdr.sender.u8[1], (p)->hdr.seqno)
+#define DEBUG_UNICAST_PACKET(p) LOG("type:%x, hops: %d, o:%d.%d, s:%d.%d, d: %d.%d, seqno:%d\n", \
+			(p)->hdr.flags, (p)->hdr.hops,  \
+			(p)->hdr.originator.u8[0], (p)->hdr.originator.u8[1], \
+			(p)->hdr.sender.u8[0], (p)->hdr.sender.u8[1], \
+			(p)->destination.u8[0], (p)->destination.u8[1], \
+			(p)->hdr.seqno)
 
 enum packet_flags {
 	ACK = 0x80,
@@ -56,6 +63,12 @@ struct multicast_packet {
 struct unicast_packet {
 	struct header hdr;
 	rimeaddr_t destination;
+	uint8_t data[1];
+};
+
+/* used in mesh_conn */
+struct mesh_packet {
+	uint8_t seqno;
 	uint8_t data[1];
 };
 

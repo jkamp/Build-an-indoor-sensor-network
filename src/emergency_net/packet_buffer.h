@@ -8,8 +8,8 @@
 
 /* XXX: change name to packet_send_buffer or something */
 
-#define HIGHEST_PRIO 0
-#define NUM_PRIO_LEVELS 3
+#define PACKET_BUFFER_TYPE_ZERO 0
+#define PACKET_BUFFER_MAX_TYPES 5
 
 #define BUFFERED_PACKET_HDR_SIZE (sizeof(struct buffered_packet)-sizeof(uint8_t))
 
@@ -28,13 +28,12 @@ struct buffered_packet {
 	QUEUE_BUFFER(unacked_ns, sizeof(rimeaddr_t*), MAX_NEIGHBORS);
 	uint8_t times_sent; 
 	uint8_t data_len; 
-	void (*send_fn)(void *ptr);
+	/*void (*send_fn)(void *ptr);*/
 	struct packet p;
-	uint8_t data[1];
 };
 
 struct packet_buffer {
-	struct buffered_packet *prio_heads[NUM_PRIO_LEVELS];
+	struct buffered_packet *prio_heads[PACKET_BUFFER_MAX_TYPES];
 	struct queue_buffer *buffer;
 };
 
@@ -42,18 +41,18 @@ void packet_buffer_init(struct packet_buffer *pb);
 
 struct buffered_packet*
 packet_buffer_packet(struct packet_buffer *pb, const struct packet *p, 
-		const void *data, uint8_t data_len, const struct neighbors *ns, 
-		void (*send_fn)(void *ptr), int prio);
+		const void *data, uint8_t data_len, const struct neighbors *ns
+		/*void (*send_fn)(void *ptr)*/, int type);
 
 struct buffered_packet*
 packet_buffer_broadcast_packet(struct packet_buffer *pb, 
 		const struct broadcast_packet *bp, const void *data, uint8_t data_len,
-		const struct neighbors *ns, void (*send_fn)(void *ptr), int prio);
+		const struct neighbors *ns/*, void (*send_fn)(void *ptr)*/, int type);
 
 struct buffered_packet*
 packet_buffer_unicast_packet(struct packet_buffer *pb, 
 		const struct unicast_packet *up, const void *data, uint8_t data_len,
-		const struct neighbors *ns, void (*send_fn)(void *ptr), int prio);
+		const struct neighbors *ns/*, void (*send_fn)(void *ptr)*/, int type);
 
 static
 void packet_buffer_neighbor_acked(struct buffered_packet *bp, const rimeaddr_t *addr);
@@ -79,17 +78,19 @@ uint8_t packet_buffer_data_len(const struct buffered_packet *bp);
 static
 struct packet* packet_buffer_get_packet(struct buffered_packet *bp);
 
-static
-void* packet_buffer_get_data(struct buffered_packet *bp);
+/*static
+void* packet_buffer_get_data(struct buffered_packet *bp);*/
 
 static
 void packet_buffer_increment_times_sent(struct buffered_packet *bp);
 
-static
-void (*packet_buffer_send_fn(struct buffered_packet *bp)) (void*);
+/*static
+void (*packet_buffer_send_fn(struct buffered_packet *bp)) (void*);*/
 
+/*struct buffered_packet*
+packet_buffer_get_packet_for_sending(struct packet_buffer *pb);*/
 struct buffered_packet*
-packet_buffer_get_packet_for_sending(struct packet_buffer *pb);
+packet_buffer_get_first_packet_from_type(struct packet_buffer *pb, uint8_t type);
 
 struct buffered_packet*
 packet_buffer_find_buffered_packet(struct packet_buffer *pb, const struct packet* p,
@@ -121,20 +122,20 @@ struct packet* packet_buffer_get_packet(struct buffered_packet *bp) {
 	return &bp->p;
 }
 
-static inline
+/*static inline
 void* packet_buffer_get_data(struct buffered_packet *bp) {
 	return bp->data;
-}
+}*/
 
 static inline
 void packet_buffer_increment_times_sent(struct buffered_packet *bp) {
 	++bp->times_sent;
 }
 
-static inline
+/*static inline
 void (*packet_buffer_send_fn(struct buffered_packet *bp)) (void*) {
 	return bp->send_fn;
-}
+}*/
 
 static inline
 int packet_buffer_has_room_for_packets(const struct packet_buffer *pb, uint8_t num_packets) {
