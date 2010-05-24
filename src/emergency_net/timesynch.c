@@ -51,6 +51,7 @@ timesynch_offset(void)
 	static void
 adjust_offset(rtimer_clock_t authoritative_time, rtimer_clock_t local_time)
 {
+	LOG("Adjusting offset\n");
 	offset = offset + authoritative_time - local_time;
 }
 /*---------------------------------------------------------------------------*/

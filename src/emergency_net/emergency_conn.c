@@ -13,12 +13,10 @@
 
 #define MAX_TIMES_SENT 5
 
-#define FAST_TRANSMIT (random_rand()%CLOCK_SECOND/2)
+#define FAST_TRANSMIT (CLOCK_SECOND+random_rand()%(2*CLOCK_SECOND))
 
 #define FAST_RETRANSMIT_NEIGHBOR_DATA_TIME CLOCK_SECOND
-#define RETRANSMIT_NEIGHBOR_DATA_TIME (2*CLOCK_SECOND)
-
-#define FAST_RETRANSMIT_NEIGHBOR_ACK_TIME (CLOCK_SECOND/2)
+#define RETRANSMIT_NEIGHBOR_DATA_TIME (3*CLOCK_SECOND)
 
 #define TIMESYNCH_LEADER_UPDATE (30*CLOCK_SECOND)
 #define TIMESYNCH_LEADER_TIMEOUT (60*CLOCK_SECOND)
@@ -323,8 +321,8 @@ static void neighbor_recv(struct abc_conn *bc) {
 		case UNICAST:
 			{
 				const struct unicast_packet *up = (struct unicast_packet*)p;
-				LOG("Unicast to: %d.%d\n", up->destination.u8[0],
-						up->destination.u8[1]);
+				LOG("Unicast packet: ");
+				DEBUG_UNICAST_PACKET(up);
 				if (rimeaddr_cmp(&up->destination, &rimeaddr_node_addr)) {
 					is_for_us = 1;
 					data = up->data;
@@ -405,7 +403,8 @@ static void neighbor_recv(struct abc_conn *bc) {
 			}
 		}
 	} else {
-		LOG("NOT FOR US OR NOT A NEIGHBOR\n");
+		LOG("NOT FOR US OR NOT A NEIGHBOR: (is_for_us: %d) ", is_for_us);
+		DEBUG_PACKET(p);
 	}
 }
 
@@ -488,7 +487,7 @@ void ec_mesh(struct ec *c, const rimeaddr_t *destination, uint8_t seqno,
 	}
 }
 
-static void timesynch(void *ptr) {
+static void timesynch_as_leader(void *ptr) {
 	struct ec *c = (struct ec*)ptr;
 	struct broadcast_packet bp;
 	set_authority_level(timesynch_rimeaddr_to_authority(&rimeaddr_node_addr));
@@ -497,14 +496,14 @@ static void timesynch(void *ptr) {
 	init_broadcast_packet(&bp, TIMESYNCH, 0, &rimeaddr_node_addr,
 			&rimeaddr_node_addr, c->ts.seqno++);
 
-	LOG("[TIMESYNCH TIMEOUT]: ");
+	LOG("[TIMESYNCH AS LEADER]: ");
 	DEBUG_PACKET(&bp);
 
 	packet_buffer_broadcast_packet(&c->sq, &bp, NULL, 0, NULL,
 			MSG_TYPE_TIMESYNCH_DATA);
 
 	ctimer_set(&c->timesynch_data_timer, FAST_TRANSMIT, send_timesynch_data, c);
-	ctimer_set(&c->ts.timer, TIMESYNCH_LEADER_UPDATE, timesynch, c);
+	ctimer_set(&c->ts.timer, TIMESYNCH_LEADER_UPDATE, timesynch_as_leader, c);
 	
 	c->cb->timesynch(c);
 }
@@ -526,7 +525,7 @@ static void timesynch_recv(struct abc_conn *bc) {
 				timesynch_rimeaddr_to_authority(&rimeaddr_node_addr);
 
 			if (my_authlevel < authlevel) {
-				timesynch(c);
+				timesynch_as_leader(c);
 			} else {
 				set_authority_level(authlevel);
 				set_authority_seqno(p->hdr.seqno);
@@ -535,14 +534,14 @@ static void timesynch_recv(struct abc_conn *bc) {
 						&p->hdr.originator, &rimeaddr_node_addr, p->hdr.seqno);
 
 				LOG("New leader. Forwarding timesynch packet: ");
-				DEBUG_PACKET((&bp));
+				DEBUG_PACKET(&bp);
 
 				packet_buffer_broadcast_packet(&c->sq, &bp, NULL, 0, NULL,
 						MSG_TYPE_TIMESYNCH_DATA);
 
 				ctimer_set(&c->timesynch_data_timer, FAST_TRANSMIT,
 						send_timesynch_data, c);
-				ctimer_set(&c->ts.timer, TIMESYNCH_LEADER_TIMEOUT, timesynch, c);
+				ctimer_set(&c->ts.timer, TIMESYNCH_LEADER_TIMEOUT, timesynch_as_leader, c);
 			}
 
 			c->cb->timesynch(c);
@@ -557,13 +556,13 @@ static void timesynch_recv(struct abc_conn *bc) {
 						&p->hdr.originator, &rimeaddr_node_addr, p->hdr.seqno);
 
 				LOG("Forwarding timesynch packet: ");
-				DEBUG_PACKET((&bp));
+				DEBUG_PACKET(&bp);
 
 				packet_buffer_broadcast_packet(&c->sq, &bp, NULL, 0, NULL,
 						MSG_TYPE_TIMESYNCH_DATA);
 
 				ctimer_set(&c->timesynch_data_timer, FAST_TRANSMIT, send_timesynch_data, c);
-				ctimer_set(&c->ts.timer, TIMESYNCH_LEADER_TIMEOUT, timesynch, c);
+				ctimer_set(&c->ts.timer, TIMESYNCH_LEADER_TIMEOUT, timesynch_as_leader, c);
 
 				c->cb->timesynch(c);
 			} 
@@ -640,7 +639,7 @@ void ec_set_neighbors(struct ec *c, const struct neighbors *ns) {
 void ec_timesynch_network(struct ec *c) {
 	ASSERT(c->ts.is_on == 1);
 	if(ctimer_expired(&c->ts.timer)) {
-		timesynch(c);
+		timesynch_as_leader(c);
 	}
 }
 
