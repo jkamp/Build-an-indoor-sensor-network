@@ -14,9 +14,9 @@
 #define MAX_TIMES_SENT 5
 
 #define FAST_TRANSMIT (CLOCK_SECOND+random_rand()%(2*CLOCK_SECOND))
+#define FAST_TRANSMIT_ACK (random_rand()%CLOCK_SECOND)
 
-#define FAST_RETRANSMIT_NEIGHBOR_DATA_TIME CLOCK_SECOND
-#define RETRANSMIT_NEIGHBOR_DATA_TIME (3*CLOCK_SECOND)
+#define RETRANSMIT_NEIGHBOR_DATA (6*CLOCK_SECOND)
 
 #define TIMESYNCH_LEADER_UPDATE (30*CLOCK_SECOND)
 #define TIMESYNCH_LEADER_TIMEOUT (60*CLOCK_SECOND)
@@ -120,11 +120,11 @@ static void send_neighbor_data(void *cptr) {
 			LOG("ERROR: DATA packet collision.\n");
 			/* fast retransmit */
 			ctimer_set(&c->neighbor_data_timer,
-					FAST_RETRANSMIT_NEIGHBOR_DATA_TIME, send_neighbor_data, c);
+					FAST_TRANSMIT, send_neighbor_data, c);
 		} else {
 			packet_buffer_increment_times_sent(bp);
 			ctimer_set(&c->neighbor_data_timer,
-					RETRANSMIT_NEIGHBOR_DATA_TIME, send_neighbor_data, c);
+					RETRANSMIT_NEIGHBOR_DATA, send_neighbor_data, c);
 		}
 
 	}
@@ -147,7 +147,7 @@ static void send_neighbor_ack(void* cptr) {
 		if (abc_send(&c->neighbor_conn) == 0) {
 			LOG("ERROR: ACK packet collision.\n");
 			ctimer_set(&c->neighbor_ack_timer,
-					FAST_TRANSMIT,
+					FAST_TRANSMIT_ACK,
 					send_neighbor_ack, c);
 		} else {
 			packet_buffer_free(&c->sq, bp);
@@ -155,7 +155,7 @@ static void send_neighbor_ack(void* cptr) {
 					MSG_TYPE_NEIGHBOR_ACK);
 			if (bp != NULL) {
 				ctimer_set(&c->neighbor_ack_timer,
-						FAST_TRANSMIT, send_neighbor_ack, c);
+						FAST_TRANSMIT_ACK, send_neighbor_ack, c);
 			}
 		}
 	}
@@ -396,7 +396,7 @@ static void neighbor_recv(struct abc_conn *bc) {
 					packet_buffer_unicast_packet(&c->sq, &ap, NULL, 0, NULL,
 							MSG_TYPE_NEIGHBOR_ACK);
 					ctimer_set(&c->neighbor_ack_timer,
-							FAST_TRANSMIT, send_neighbor_ack, c);
+							FAST_TRANSMIT_ACK, send_neighbor_ack, c);
 				} else {
 					LOG("Found ack in sending queue already\n");
 				}
@@ -443,7 +443,6 @@ void ec_reliable_broadcast_ns(struct ec *c, const rimeaddr_t *originator,
 	store_packet_for_dupe_checks(c, (struct packet*)&bp);
 
 	if (ctimer_expired(&c->neighbor_data_timer)) {
-		TRACE("Neighbor data expired\n");
 		ctimer_set(&c->neighbor_data_timer,
 				FAST_TRANSMIT, send_neighbor_data, c);
 	}
@@ -463,7 +462,6 @@ void ec_broadcast(struct ec *c, const rimeaddr_t *originator,
 	store_packet_for_dupe_checks(c, (struct packet*)&bp);
 
 	if (ctimer_expired(&c->broadcast_data_timer)) {
-		TRACE("Broadcast data expired\n");
 		ctimer_set(&c->broadcast_data_timer,
 				FAST_TRANSMIT, send_broadcast_data, c);
 	}

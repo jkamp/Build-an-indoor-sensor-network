@@ -84,6 +84,8 @@ struct node_info_packet {
 
 enum blinking_sequence_state {
 	ON = 0, OFF_1 = 1, OFF_2 = 2, OFF_3 = 3
+	/*, OFF_4 = 4, OFF_5 = 5, OFF_6 = 6,
+	OFF_7 = 7*/
 };
 
 struct sensor_readings {
@@ -139,12 +141,12 @@ blink(struct rtimer *rt, void *ptr) {
 				leds_blue(1);
 				break;
 			case OFF_1:
-				leds_blue(0);
-				break;
 			case OFF_2:
-				leds_blue(0);
-				break;
 			case OFF_3:
+			/*case OFF_4:
+			case OFF_5:
+			case OFF_6:
+			case OFF_7:*/
 				leds_blue(0);
 				break;
 		}
@@ -671,6 +673,7 @@ PROCESS_THREAD(fire_process, ev, data) {
 				 * should be elected if we hit timeout of 60 sec. */
 				ec_timesynch_network(&g_np.c);
 
+				leds_red(1);
 				g_np.state.has_sensed_emergency = 1;
 			} else if(strcmp(data, "inc") == 0) {
 				g_np.current_sensors_metric += 10;
