@@ -618,14 +618,16 @@ PROCESS_THREAD(fire_process, ev, data) {
 	QUEUE_BUFFER_INIT_WITH_STRUCT(&g_np, emergency_coords, 
 			sizeof(struct coordinate), MAX_FIRE_COORDINATES);
 	ec_open(&g_np.c, EMERGENCYNET_CHANNEL, &ec_cb);
-	/*{
+	{
+#ifndef EMERGENCY_COOJA_SIMULATION
 		char buf[SETUP_PACKET_SIZE+MAX_NEIGHBORS*sizeof(rimeaddr_t)] = {0};
 		struct setup_packet *sp = (struct setup_packet*)buf;
 		if (node_properties_restore(buf, sizeof(buf))) {
 			LOG("Found info on flash\n");
 			setup_parse(sp, 1);
 		}
-	}*/
+#endif
+	}
 
 	SENSORS_ACTIVATE(button_sensor);
 
@@ -647,7 +649,7 @@ PROCESS_THREAD(fire_process, ev, data) {
 #ifdef EMERGENCY_COOJA_SIMULATION
 			} else if(strcmp(data, "init") == 0) {
 				rimeaddr_t addr = { {0xFE, 0xFE} };
-			/struct sensor_packet sp = {INITIALIZE_BEST_PATHS_PACKET};
+				struct sensor_packet sp = {INITIALIZE_BEST_PATHS_PACKET};
 				LOG("Initing\n");
 				ec_broadcasts_recv(NULL, &addr, &addr, 0, 0, &sp, sizeof(struct sensor_packet));
 			} else if(strcmp(data, "blink") == 0) {
