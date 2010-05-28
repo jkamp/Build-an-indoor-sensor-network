@@ -213,8 +213,8 @@ void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 		leds_green(1);
 	}
 
-	LOG("Id: %d.%d, Coord: (%d, %d), ", rimeaddr_node_addr.u8[0],
-			rimeaddr_node_addr.u8[1], coordinate_node.x, coordinate_node.y);
+	LOG("Id: %d.%d, Coord: (%d, %d), is_exit_node: %d", rimeaddr_node_addr.u8[0],
+			rimeaddr_node_addr.u8[1], coordinate_node.x, coordinate_node.y, g_np.state.is_exit_node);
 	LOG("Neighbors: ");
 	{
 		const struct neighbor_node *nn = neighbors_begin(&g_np.ns);
@@ -226,14 +226,14 @@ void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 	}
 	LOG("\n");
 
-//#ifndef EMERGENCY_COOJA_SIMULATION
+#ifndef EMERGENCY_COOJA_SIMULATION
 	if(!is_from_flash) {
 		LOG("Burning info to flash\n");
 		node_properties_burn(sp, SETUP_PACKET_SIZE + 
 				sp->num_neighbors * sizeof(rimeaddr_t));
 		LOG("Burning info to flash OK\n");
 	}
-//#endif
+#endif
 }
 
 static inline metric_t
@@ -618,14 +618,14 @@ PROCESS_THREAD(fire_process, ev, data) {
 	QUEUE_BUFFER_INIT_WITH_STRUCT(&g_np, emergency_coords, 
 			sizeof(struct coordinate), MAX_FIRE_COORDINATES);
 	ec_open(&g_np.c, EMERGENCYNET_CHANNEL, &ec_cb);
-	{
+	/*{
 		char buf[SETUP_PACKET_SIZE+MAX_NEIGHBORS*sizeof(rimeaddr_t)] = {0};
 		struct setup_packet *sp = (struct setup_packet*)buf;
 		if (node_properties_restore(buf, sizeof(buf))) {
 			LOG("Found info on flash\n");
 			setup_parse(sp, 1);
 		}
-	}
+	}*/
 
 	SENSORS_ACTIVATE(button_sensor);
 
@@ -647,7 +647,7 @@ PROCESS_THREAD(fire_process, ev, data) {
 #ifdef EMERGENCY_COOJA_SIMULATION
 			} else if(strcmp(data, "init") == 0) {
 				rimeaddr_t addr = { {0xFE, 0xFE} };
-				struct sensor_packet sp = {INITIALIZE_BEST_PATHS_PACKET};
+			/struct sensor_packet sp = {INITIALIZE_BEST_PATHS_PACKET};
 				LOG("Initing\n");
 				ec_broadcasts_recv(NULL, &addr, &addr, 0, 0, &sp, sizeof(struct sensor_packet));
 			} else if(strcmp(data, "blink") == 0) {
