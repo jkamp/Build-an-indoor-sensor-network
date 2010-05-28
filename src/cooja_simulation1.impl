@@ -50,7 +50,7 @@ if (strcmp(data, "1") == 0) {
 	}
 
 	sp->is_exit_node = 0;
-	sp->num_neighbors = 2;
+	sp->num_neighbors = 1;
 
 	{
 		rimeaddr_t addr;
@@ -59,9 +59,9 @@ if (strcmp(data, "1") == 0) {
 		addr.u8[1] = 0;
 		rimeaddr_copy(neighbor_addr++, &addr);
 
-		addr.u8[0] = 3;
+		/*addr.u8[0] = 3;
 		addr.u8[1] = 0;
-		rimeaddr_copy(neighbor_addr++, &addr);
+		rimeaddr_copy(neighbor_addr++, &addr);*/
 	}
 
 	setup_parse(sp, 0);

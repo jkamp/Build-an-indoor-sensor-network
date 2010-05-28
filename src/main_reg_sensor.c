@@ -19,7 +19,7 @@
 #include "base/log.h"
 
 /* 0 means no simulation */
-#define EMERGENCY_COOJA_SIMULATION 2
+#define EMERGENCY_COOJA_SIMULATION 1
 
 #define EMERGENCYNET_CHANNEL 128
 #define BLINKING_SEQUENCE_LENGTH 4
@@ -33,23 +33,34 @@
 /****** PACKET TYPES ******/
 enum {
 	/* System in action */
-	EMERGENCY_PACKET,
-	BEST_PATH_UPDATE_PACKET,
+	EMERGENCY_PACKET=0,
+	BEST_PATH_UPDATE_PACKET=1,
 
 	/* Setup of the system */
-	SETUP_PACKET,
+	SETUP_PACKET=2,
 
-	INITIALIZE_BEST_PATHS_PACKET,
+	INITIALIZE_BEST_PATHS_PACKET=3,
 
 	/* Contains: 
 	 * - Coordinate 
 	 * - Best path */
-	NODE_INFO_PACKET,
+	NODE_INFO_PACKET=4,
 
-	EXTRACT_INFO_PACKET,
+	EXTRACT_INFO_PACKET=5,
 
-	RESET_SYSTEM_PACKET
+	RESET_SYSTEM_PACKET=6
 };
+
+static inline
+void uint16_to_2uint8(uint16_t in, uint8_t out[2]) {
+	out[0] = in&0xFF00;
+	out[1] = in&0xFF;
+}
+
+static inline
+void 2uint8_to_uint16(uint8_t in[2], uint16_t *out) {
+	*out = (in[0]<<8) | in[1];
+}
 
 struct sensor_packet {
 	uint8_t type;
@@ -78,9 +89,20 @@ struct setup_packet {
 
 struct node_info_packet {
 	uint8_t type;
-	struct coordinate coord;
-	struct neighbor_node_best_path bp;
+	uint8_t align;
+	struct {
+		uint8_t coord_x[2];
+		uint8_t coord_y[2];
+	} coord;
+
+	struct {
+		uint8_t metric_1[2];
+		uint8_t metric_2[2];
+		rimeaddr_t points_to;
+		uint8_t hops;
+	} bp; /* best path */
 };
+
 
 enum blinking_sequence_state {
 	ON = 0, OFF_1 = 1, OFF_2 = 2, OFF_3 = 3
@@ -341,7 +363,10 @@ static void update_bpn_and_send_node_info() {
 	g_np.bpn = best;
 
 	nip.type = NODE_INFO_PACKET;
-	nip.coord = coordinate_node;
+	nip.align = 0xFF;
+	//nip.coord = coordinate_node;
+	uint16_to_2uint8(coordinate_node.x, nip.coord.coord_x);
+	uint16_to_2uint8(coordinate_node.y, nip.coord.coord_y);
 	best_neighbor_bp_to_our_bp(&nip.bp);
 
 	LOG("SENDING NODE_INFO_PACKET: coord: (%d,%d), metric: %d, "
@@ -351,6 +376,7 @@ static void update_bpn_and_send_node_info() {
 			nip.bp.points_to.u8[0],
 			nip.bp.points_to.u8[1],
 			nip.bp.hops);
+	LOG("Sizeof node_info_packet: %d\n", sizeof(struct node_info_packet));
 
 	ec_reliable_broadcast_ns(&g_np.c,
 			&rimeaddr_node_addr, &rimeaddr_node_addr, 0,
@@ -454,6 +480,18 @@ static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator,
 	}
 }
 
+static void
+print_packet_data(const uint8_t *hdr, int len)
+{
+  int i;
+
+  for(i = 0; i < len; ++i) {
+    LOG(" (0x%0x), ", hdr[i]);
+  }
+
+  LOG("\n");
+}
+
 /* Received packets from neighbors only */
 static void ec_neighbors_recv(struct ec *c, const rimeaddr_t *originator, 
 		const rimeaddr_t *sender, uint8_t hops, uint8_t seqno, 
@@ -503,13 +541,27 @@ static void ec_neighbors_recv(struct ec *c, const rimeaddr_t *originator,
 				const struct node_info_packet *nip = (struct node_info_packet*)p;
 				struct neighbor_node *nn = 
 					neighbors_find_neighbor_node(&g_np.ns, sender);
-				LOG("RECV NODE_INFO_PACKET: coord: (%d,%d), metric: %d, "
+				uint16_t x;
+				uint16_t y;
+				2uint8_to_uint16(nip->coord.coord_x, &x);
+				2uint8_to_uint16(nip->coord.coord_y, &y);
+				LOG("NODE INFO PACKET: type: %d, align: %d\n", nip->type, nip->align);
+				/*LOG("RECV NODE_INFO_PACKET: coord: (%d,%d), metric: %d, "
 						"points_to: %d.%d, hops: %d\n",
 						nip->coord.x, nip->coord.y,
 						nip->bp.metric,
 					   	nip->bp.points_to.u8[0],
 						nip->bp.points_to.u8[1],
+						nip->bp.hops);*/
+				LOG("RECV NODE_INFO_PACKET: coord: (%d,%d), metric: %d, "
+						"points_to: %d.%d, hops: %d\n",
+						x, y,
+						nip->bp.metric,
+					   	nip->bp.points_to.u8[0],
+						nip->bp.points_to.u8[1],
 						nip->bp.hops);
+				LOG("Sizeof node_info_packet2: %d\n", sizeof(struct node_info_packet));
+				print_packet_data((uint8_t*)nip, sizeof(struct node_info_packet));
 				ASSERT(nn != NULL);
 				neighbor_node_set_coordinate(nn, &nip->coord);
 				neighbor_node_set_best_path(nn, &nip->bp);
@@ -665,7 +717,7 @@ PROCESS_THREAD(fire_process, ev, data) {
 				blinking_init();
 
 				read_sensors(&r);
-				g_np.current_sensors_metric = sensor_readings_to_metric(&r);
+				g_np.current_sensors_metric = 0;/*sensor_readings_to_metric(&r);*/
 
 				ep.type = EMERGENCY_PACKET;
 				ep.source = coordinate_node;

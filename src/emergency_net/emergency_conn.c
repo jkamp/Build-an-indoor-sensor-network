@@ -29,6 +29,18 @@ enum {
 	MSG_TYPE_MESH_DATA = PACKET_BUFFER_TYPE_ZERO+4
 };
 
+static void
+print_packet_data(uint8_t *hdr, int len)
+{
+  int i;
+
+  for(i = 0; i < len; ++i) {
+    LOG(" (0x%0x), ", hdr[i]);
+  }
+
+  LOG("\n");
+}
+
 static void send_neighbor_data(void *cptr) {
 	struct ec *c = (struct ec*)cptr;
 	struct buffered_packet *bp =
@@ -59,6 +71,8 @@ static void send_neighbor_data(void *cptr) {
 
 		LOG("[NEIGHBOR DATA SEND]: ");
 		DEBUG_PACKET(p);
+		LOG("Packet data: ");
+		print_packet_data(p->data, packet_buffer_data_len(bp));
 
 		packetbuf_clear();
 
@@ -297,6 +311,7 @@ static void neighbor_recv(struct abc_conn *bc) {
 	int8_t is_for_us = 0;
 	TRACE("[NEIGHBOR RECV] ");
 	DEBUG_PACKET(p);
+
 	
 	switch(PACKET_TYPE(p)) {
 		case BROADCAST:
@@ -304,7 +319,6 @@ static void neighbor_recv(struct abc_conn *bc) {
 			data = p->data;
 			data_len = packetbuf_datalen() - BROADCAST_PACKET_HDR_SIZE;
 			break;
-
 		case MULTICAST:
 			{
 				const struct multicast_packet *mp = (struct multicast_packet*)p;
@@ -339,6 +353,9 @@ static void neighbor_recv(struct abc_conn *bc) {
 		default:
 			ASSERT(0);
 	}
+
+	LOG("data: ");
+	print_packet_data(data, data_len);
 
 	if (is_for_us && neighbors_is_neighbor(c->ns, &p->hdr.sender)) {
 		if (IS_PACKET_FLAG_SET(p, ACK)) {
@@ -440,11 +457,26 @@ void ec_reliable_broadcast_ns(struct ec *c, const rimeaddr_t *originator,
 		uint8_t data_len) {
 
 	struct broadcast_packet bp;
+	struct buffered_packet* tmp;
 
 	init_broadcast_packet(&bp, 0, hops, originator, sender, seqno);
 
-	packet_buffer_broadcast_packet(&c->sq, &bp, data, data_len, c->ns,
+	tmp = packet_buffer_broadcast_packet(&c->sq, &bp, data, data_len, c->ns,
 			MSG_TYPE_NEIGHBOR_DATA);
+
+	{
+		struct packet* p = packet_buffer_get_packet(tmp);
+		ASSERT(rimeaddr_cmp(&p->hdr.originator, originator) == 1);
+		ASSERT(rimeaddr_cmp(&p->hdr.sender, sender) == 1);
+		ASSERT(p->hdr.hops == hops);
+		ASSERT(p->hdr.seqno == seqno);
+		ASSERT(memcmp(data, p->data, data_len) == 0);
+
+		TRACE("");
+		DEBUG_PACKET(p);
+		LOG("Packet data buffered: ");
+		print_packet_data(p->data, packet_buffer_data_len(tmp));
+	}
 
 	store_packet_for_dupe_checks(c, (struct packet*)&bp);
 
