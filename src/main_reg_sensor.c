@@ -652,6 +652,9 @@ PROCESS_THREAD(fire_process, ev, data) {
 				ec_broadcasts_recv(NULL, &addr, &addr, 0, 0, &sp, sizeof(struct sensor_packet));
 			} else if(strcmp(data, "blink") == 0) {
 				leds_blink();
+				leds_blink();
+				leds_blink();
+				leds_blink();
 			} else if(strcmp(data, "burn") == 0) {
 				struct emergency_packet ep;
 				struct sensor_readings r;

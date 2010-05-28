@@ -39,9 +39,15 @@ static void send_neighbor_data(void *cptr) {
 			packet_buffer_get_packet(bp);
 
 		while (packet_buffer_times_sent(bp) >= MAX_TIMES_SENT) {
+			rimeaddr_t *neighbor = packet_buffer_unacked_neighbors_begin(bp);
 			LOG("Packet has been sent too many times without ACKs, neighbor "
 					"presumed dead. Dropping packet from further sending.\n");
 			/* TODO: implement warn. */
+			LOG("Unanswered neighbors: ");
+			for(;neighbor != NULL; neighbor = packet_buffer_unacked_neighbors_next(bp)) {
+				LOG("%d.%d, ", neighbor->u8[0], neighbor->u8[1]);
+			}
+			LOG("\n");
 
 			packet_buffer_free(&c->sq, bp);
 			bp = packet_buffer_get_first_packet_from_type(&c->sq,
