@@ -185,7 +185,7 @@ blinking_init() {
 	}
 }
 
-void setup_parse(const struct setup_packet *sp) {
+void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 	int i = 0;
 	const rimeaddr_t *addr = sp->neighbors;
 
@@ -226,12 +226,14 @@ void setup_parse(const struct setup_packet *sp) {
 	}
 	LOG("\n");
 
-#ifndef EMERGENCY_COOJA_SIMULATION
-	LOG("Burning info to flash\n");
-	node_properties_burn(sp, SETUP_PACKET_SIZE + 
-			sp->num_neighbors * sizeof(rimeaddr_t));
-	LOG("Burning info to flash OK\n");
-#endif
+//#ifndef EMERGENCY_COOJA_SIMULATION
+	if(!is_from_flash) {
+		LOG("Burning info to flash\n");
+		node_properties_burn(sp, SETUP_PACKET_SIZE + 
+				sp->num_neighbors * sizeof(rimeaddr_t));
+		LOG("Burning info to flash OK\n");
+	}
+//#endif
 }
 
 static inline metric_t
@@ -435,7 +437,7 @@ static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator,
 			LOG("RECV SETUP_PACKET\n");
 			if (g_np.state.is_awaiting_setup_packet) {
 				g_np.state.is_awaiting_setup_packet = 0;
-				setup_parse((const struct setup_packet*)p);
+				setup_parse((const struct setup_packet*)p, 0);
 				leds_blink();
 			}
 			break;
@@ -621,7 +623,7 @@ PROCESS_THREAD(fire_process, ev, data) {
 		struct setup_packet *sp = (struct setup_packet*)buf;
 		if (node_properties_restore(buf, sizeof(buf))) {
 			LOG("Found info on flash\n");
-			setup_parse(sp);
+			setup_parse(sp, 1);
 		}
 	}
 
@@ -648,6 +650,8 @@ PROCESS_THREAD(fire_process, ev, data) {
 				struct sensor_packet sp = {INITIALIZE_BEST_PATHS_PACKET};
 				LOG("Initing\n");
 				ec_broadcasts_recv(NULL, &addr, &addr, 0, 0, &sp, sizeof(struct sensor_packet));
+			} else if(strcmp(data, "blink") == 0) {
+				leds_blink();
 			} else if(strcmp(data, "burn") == 0) {
 				struct emergency_packet ep;
 				struct sensor_readings r;

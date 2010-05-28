@@ -30,7 +30,7 @@ if (strcmp(data, "1") == 0) {
 		rimeaddr_copy(neighbor_addr++, &addr);
 	}
 
-	setup_parse(sp);
+	setup_parse(sp,0);
 
 	ec_set_neighbors(&g_np.c, &g_np.ns);
 } 
@@ -70,7 +70,7 @@ else if (strcmp(data, "2") == 0) {
 		rimeaddr_copy(neighbor_addr++, &addr);
 	}
 
-	setup_parse(sp);
+	setup_parse(sp, 0);
 
 	ec_set_neighbors(&g_np.c, &g_np.ns);
 }
@@ -106,7 +106,7 @@ else if (strcmp(data, "3") == 0) {
 		rimeaddr_copy(neighbor_addr++, &addr);
 	}
 
-	setup_parse(sp);
+	setup_parse(sp, 0);
 
 	ec_set_neighbors(&g_np.c, &g_np.ns);
 }
@@ -142,7 +142,7 @@ else if (strcmp(data, "4") == 0) {
 		rimeaddr_copy(neighbor_addr++, &addr);
 	}
 
-	setup_parse(sp);
+	setup_parse(sp, 0);
 
 	ec_set_neighbors(&g_np.c, &g_np.ns);
 }
@@ -178,7 +178,7 @@ else if (strcmp(data, "5") == 0) {
 		rimeaddr_copy(neighbor_addr++, &addr);
 	}
 
-	setup_parse(sp);
+	setup_parse(sp, 0);
 
 	ec_set_neighbors(&g_np.c, &g_np.ns);
 }
@@ -214,7 +214,7 @@ else if (strcmp(data, "6") == 0) {
 		rimeaddr_copy(neighbor_addr++, &addr);
 	}
 
-	setup_parse(sp);
+	setup_parse(sp, 0);
 
 	ec_set_neighbors(&g_np.c, &g_np.ns);
 }
@@ -254,7 +254,7 @@ else if (strcmp(data, "7") == 0) {
 		rimeaddr_copy(neighbor_addr++, &addr);
 	}
 
-	setup_parse(sp);
+	setup_parse(sp,0);
 
 	ec_set_neighbors(&g_np.c, &g_np.ns);
 }
@@ -286,6 +286,6 @@ else if (strcmp(data, "8") == 0) {
 		rimeaddr_copy(neighbor_addr++, &addr);
 	}
 
-	setup_parse(sp);
+	setup_parse(sp,0);
 
 	ec_set_neighbors(&g_np.c, &g_np.ns);
