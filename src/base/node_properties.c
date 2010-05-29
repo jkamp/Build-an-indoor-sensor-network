@@ -23,7 +23,6 @@ void node_properties_burn(const void *in, int size) {
 	tag[1] = 0xad;
 	xmem_erase(XMEM_ERASE_UNIT_SIZE, 0);
 
-	ASSERT(size < XMEM_ERASE_UNIT_SIZE);
 	xmem_pwrite(tag, 2, 0);
 	xmem_pwrite(in, size, 2);
 }

@@ -14,7 +14,7 @@ if (strcmp(data, "1") == 0) {
 	}
 	{
 		struct coordinate coord = {0,0};
-		sp->new_coord = coord;
+		coord_to_coord_aligned(&coord, &sp->new_coord);
 	}
 
 	sp->is_exit_node = 1;
@@ -46,7 +46,7 @@ if (strcmp(data, "1") == 0) {
 	}
 	{
 		struct coordinate coord = {1,0};
-		sp->new_coord = coord;
+		coord_to_coord_aligned(&coord, &sp->new_coord);
 	}
 
 	sp->is_exit_node = 0;
@@ -82,7 +82,7 @@ if (strcmp(data, "1") == 0) {
 	}
 	{
 		struct coordinate coord = {2,0};
-		sp->new_coord = coord;
+		coord_to_coord_aligned(&coord, &sp->new_coord);
 	}
 
 	sp->is_exit_node = 0;

@@ -1,6 +1,7 @@
 /* FOR 8 NODES IN FOLLOWING TOPOLOGY:
-      (3) (4) (5)
- (1*) (2) (6) (7) (8*)
+      (3)-(4)-(5)
+       |       |
+ (1*)-(2)-(6)-(7)-(8*)
 */
 if (strcmp(data, "1") == 0) {
 	uint8_t tmp[SETUP_PACKET_SIZE+1*sizeof(rimeaddr_t)] = {0};
@@ -17,7 +18,7 @@ if (strcmp(data, "1") == 0) {
 	}
 	{
 		struct coordinate coord = {0,0};
-		sp->new_coord = coord;
+		coord_to_coord_aligned(&coord, &sp->new_coord);
 	}
 
 	sp->is_exit_node = 1;
@@ -49,7 +50,7 @@ else if (strcmp(data, "2") == 0) {
 	}
 	{
 		struct coordinate coord = {1,0};
-		sp->new_coord = coord;
+		coord_to_coord_aligned(&coord, &sp->new_coord);
 	}
 
 	sp->is_exit_node = 0;
@@ -89,7 +90,7 @@ else if (strcmp(data, "3") == 0) {
 	}
 	{
 		struct coordinate coord = {1,1};
-		sp->new_coord = coord;
+		coord_to_coord_aligned(&coord, &sp->new_coord);
 	}
 
 	sp->is_exit_node = 0;
@@ -125,7 +126,7 @@ else if (strcmp(data, "4") == 0) {
 	}
 	{
 		struct coordinate coord = {2,1};
-		sp->new_coord = coord;
+		coord_to_coord_aligned(&coord, &sp->new_coord);
 	}
 
 	sp->is_exit_node = 0;
@@ -161,7 +162,7 @@ else if (strcmp(data, "5") == 0) {
 	}
 	{
 		struct coordinate coord = {3,1};
-		sp->new_coord = coord;
+		coord_to_coord_aligned(&coord, &sp->new_coord);
 	}
 
 	sp->is_exit_node = 0;
@@ -197,7 +198,7 @@ else if (strcmp(data, "6") == 0) {
 	}
 	{
 		struct coordinate coord = {2,0};
-		sp->new_coord = coord;
+		coord_to_coord_aligned(&coord, &sp->new_coord);
 	}
 
 	sp->is_exit_node = 0;
@@ -233,7 +234,7 @@ else if (strcmp(data, "7") == 0) {
 	}
 	{
 		struct coordinate coord = {3,0};
-		sp->new_coord = coord;
+		coord_to_coord_aligned(&coord, &sp->new_coord);
 	}
 
 	sp->is_exit_node = 0;
@@ -273,7 +274,7 @@ else if (strcmp(data, "8") == 0) {
 	}
 	{
 		struct coordinate coord = {4,0};
-		sp->new_coord = coord;
+		coord_to_coord_aligned(&coord, &sp->new_coord);
 	}
 
 	sp->is_exit_node = 1;
