@@ -426,7 +426,7 @@ static void neighbor_recv(struct abc_conn *bc) {
 			}
 		}
 	} else {
-		LOG("NOT FOR US OR NOT A NEIGHBOR: (is_for_us: %d) ", is_for_us);
+		LOG("NOT FOR US OR NOT A NEIGHBOR: ");
 		DEBUG_PACKET(p);
 	}
 }

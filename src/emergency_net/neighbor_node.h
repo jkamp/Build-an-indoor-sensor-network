@@ -73,7 +73,8 @@ void neighbor_node_set_addr(struct neighbor_node *nn, const rimeaddr_t *addr) {
 static inline
 void neighbor_node_set_coordinate(struct neighbor_node *nn, 
 		const struct coordinate *coord) {
-	nn->coord = *coord;
+	nn->coord.x = coord->x;
+	nn->coord.y = coord->y;
 	nn->distance = coordinate_distance(coord, &coordinate_node);
 }
 
