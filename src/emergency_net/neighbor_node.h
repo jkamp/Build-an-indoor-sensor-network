@@ -73,15 +73,16 @@ void neighbor_node_set_addr(struct neighbor_node *nn, const rimeaddr_t *addr) {
 static inline
 void neighbor_node_set_coordinate(struct neighbor_node *nn, 
 		const struct coordinate *coord) {
-	nn->coord.x = coord->x;
-	nn->coord.y = coord->y;
-	nn->distance = coordinate_distance(coord, &coordinate_node);
+	memcpy(&nn->coord.x, &coord->x, sizeof(uint16_t));
+	memcpy(&nn->coord.y, &coord->y, sizeof(uint16_t));
+	memcpy(&nn->distance, &coordinate_distance(coord, &coordinate_node),
+			sizeof(uint16_t));
 }
 
 static inline
 void neighbor_node_set_best_path(struct neighbor_node *nn, 
 		const struct neighbor_node_best_path *bp) {
-	nn->bp = *bp;
+	memcpy(&nn->bp, bp, sizeof(struct neighbor_node_best_path));
 }
 
 static inline
