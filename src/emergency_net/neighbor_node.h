@@ -75,8 +75,7 @@ void neighbor_node_set_coordinate(struct neighbor_node *nn,
 		const struct coordinate *coord) {
 	memcpy(&nn->coord.x, &coord->x, sizeof(uint16_t));
 	memcpy(&nn->coord.y, &coord->y, sizeof(uint16_t));
-	memcpy(&nn->distance, &coordinate_distance(coord, &coordinate_node),
-			sizeof(uint16_t));
+	nn->distance = coordinate_distance(coord, &coordinate_node);
 }
 
 static inline
