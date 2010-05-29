@@ -5,6 +5,8 @@
 #include "dev/serial-line.h"
 #include "dev/light-sensor.h"
 
+#include "dev/sky-sensors.h"
+
 #include "sys/rtimer.h"
 #include "net/rime/timesynch.h"
 
@@ -26,8 +28,8 @@
 #define BLINKING_SEQUENCE_SWITCH_TIME (4*1024)
 #define MAX_FIRE_COORDINATES 10
 
-#define LIGHT_EMERGENCY_THRESHOLD 150
-#define ABRUPT_METRIC_CHANGE_THRESHOLD 50
+#define LIGHT_EMERGENCY_THRESHOLD 300
+#define ABRUPT_METRIC_CHANGE_THRESHOLD 100
 
 
 /****** PACKET TYPES ******/
@@ -153,9 +155,9 @@ enum blinking_sequence_state {
 };
 
 struct sensor_readings {
-	uint16_t light;
-	/*uint16_t temp;
-	uint16_t humidity;*/
+	int light;
+	/*int temp;
+	int humidity;*/
 };
 
 struct node_properties {
@@ -665,10 +667,12 @@ static void ec_mesh_recv(struct ec *c, const rimeaddr_t *originator,
 static inline
 void read_sensors(struct sensor_readings *r) {
 	SENSORS_ACTIVATE(light_sensor);
+	/* Two times are needed to better reflect the actual value right now. */
+	r->light = light_sensor.value(LIGHT_SENSOR_PHOTOSYNTHETIC);
 	r->light = light_sensor.value(LIGHT_SENSOR_PHOTOSYNTHETIC);
 	/*other sensors here*/
 	SENSORS_DEACTIVATE(light_sensor);
-	LOG("SENSORS: Light: %u\n", r->light);
+	LOG("SENSORS: Light: %d\n", r->light);
 }
 
 static inline
@@ -762,6 +766,10 @@ PROCESS_THREAD(fire_process, ev, data) {
 				leds_blink();
 				leds_blink();
 				leds_blink();
+			} else if(strcmp(data, "poll") == 0) {
+				if (emergency_poll()) {
+					LOG("Polled emergency returned 1\n");
+				}
 			} else if(strcmp(data, "burn") == 0) {
 				struct emergency_packet ep;
 				struct sensor_readings r;
