@@ -601,7 +601,9 @@ static void timesynch_recv(struct abc_conn *bc) {
 				ctimer_set(&c->ts.timer, TIMESYNCH_LEADER_TIMEOUT, timesynch_as_leader, c);
 
 				c->cb->timesynch(c);
-			} 
+			} else if (p->hdr.seqno == authority_seqno) {
+				c->cb->timesynch(c);
+			}
 		}
 	}
 }

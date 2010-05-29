@@ -22,10 +22,10 @@
 #include "base/log.h"
 
 /* 0 means no simulation */
-#define EMERGENCY_COOJA_SIMULATION 1
+#define EMERGENCY_COOJA_SIMULATION 2
 
 #define EMERGENCYNET_CHANNEL 128
-#define BLINKING_SEQUENCE_LENGTH 4
+#define BLINKING_SEQUENCE_LENGTH 8
 #define BLINKING_SEQUENCE_SWITCH_TIME (4*1024)
 #define MAX_FIRE_COORDINATES 10
 
@@ -148,8 +148,8 @@ struct node_info_packet {
 
 enum blinking_sequence_state {
 	ON = 0, OFF_1 = 1, OFF_2 = 2, OFF_3 = 3
-	/*, OFF_4 = 4, OFF_5 = 5, OFF_6 = 6,
-	OFF_7 = 7*/
+	, OFF_4 = 4, OFF_5 = 5, OFF_6 = 6,
+	OFF_7 = 7
 };
 
 struct sensor_readings {
@@ -207,10 +207,10 @@ blink(struct rtimer *rt, void *ptr) {
 			case OFF_1:
 			case OFF_2:
 			case OFF_3:
-			/*case OFF_4:
+			case OFF_4:
 			case OFF_5:
 			case OFF_6:
-			case OFF_7:*/
+			case OFF_7:
 				leds_blue(0);
 				break;
 		}
@@ -849,7 +849,7 @@ PROCESS_THREAD(fire_process, ev, data) {
 				uint16_to_uint8(100, g_np.current_sensors_metric);
 
 				ep.type = EMERGENCY_PACKET;
-				ep.source = coordinate_node;
+				coordinate_copy(&ep.source, &coordinate_node);
 
 				queue_buffer_push_front(&g_np.emergency_coords, &coordinate_node);
 
