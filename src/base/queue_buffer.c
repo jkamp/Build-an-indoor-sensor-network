@@ -1,5 +1,8 @@
 #include "base/queue_buffer.h"
 
+
+#include "emergency_net/neighbor_node.h"
+
 #include "base/log.h"
 
 #define ITEM(qb, item_nr) ((struct queue_buffer_s*) \
@@ -60,8 +63,13 @@ void queue_buffer_init(struct queue_buffer *qb, uint8_t buffer_size, uint8_t
 	qb->buffer_begin = buffer_begin;
 
 	qb->unused_head = NULL;
+	//LOG("Buffer begin: %x\n", qb->buffer_begin);
 	for(i = 0; i < qb->queue_max_size; ++i) {
 		b = ITEM(qb, i);
+		//LOG("b: %x\n", b);
+		ASSERT((char*)b >= (char*)buffer_begin && (char*)b <=
+				((char*)buffer_begin+(buffer_size+QUEUE_BUFFER_S_HDR_SIZE)*
+				 num_items));
 		add_tail(&qb->unused_head, b);
 	}
 	qb->used_head = NULL;
@@ -92,9 +100,13 @@ void* queue_buffer_alloc_front(struct queue_buffer* qb) {
 void* queue_buffer_push_front(struct queue_buffer *qb, const void *item) {
 
 	struct queue_buffer_s *b = allocate_buffer_space_front(qb);
+	//LOG("push front: %x\n", b);
+	//TRACE("metric: %u\n", ((struct neighbor_node*)item)->bp.metric);
 	if (b != NULL) {
 		++qb->queue_size;
 		memcpy(b->data, item, qb->buffer_size);
+		ASSERT(memcmp(item, b->data, qb->buffer_size) == 0);
+		//TRACE("metric: %u\n", ((struct neighbor_node*)b->data)->bp.metric);
 		return b->data;
 	}
 

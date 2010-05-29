@@ -18,10 +18,11 @@
 
 #include "base/node_properties.h"
 
+#include "base/util.h"
 #include "base/log.h"
 
 /* 0 means no simulation */
-#define EMERGENCY_COOJA_SIMULATION 2
+#define EMERGENCY_COOJA_SIMULATION 1
 
 #define EMERGENCYNET_CHANNEL 128
 #define BLINKING_SEQUENCE_LENGTH 4
@@ -53,58 +54,55 @@ enum {
 	RESET_SYSTEM_PACKET=6
 };
 
-static inline
-void uint16_to_uint8(const uint16_t in, uint8_t out[2]) {
-	out[0] = in&0xFF00;
-	out[1] = in&0xFF;
-}
-
-static inline
-void uint8_to_uint16(const uint8_t in[2],
-	   	uint16_t *out) {
-	*out = (in[0]<<8) | in[1];
-}
 
 /* used to convert 16bit metrics to 8bits for sending */
-struct best_path_aligned {
-	uint8_t metric[2];
-	rimeaddr_t points_to;
-	uint8_t hops;
-};
+//struct best_path_aligned {
+//	uint8_t metric[2];
+//	rimeaddr_t points_to;
+//	uint8_t hops;
+//};
 
-struct coordinate_aligned {
-	uint8_t x[2];
-	uint8_t y[2];
-};
+//struct coordinate_aligned {
+//	uint8_t x[2];
+//	uint8_t y[2];
+//};
 
-void coord_to_coord_aligned(const struct coordinate *c, 
-		struct coordinate_aligned *ca) {
-	uint16_to_uint8(c->x, ca->x);
-	uint16_to_uint8(c->y, ca->y);
-}
+//void coord_to_coord_aligned(const struct coordinate *c, 
+//		struct coordinate_aligned *ca) {
+//	uint16_to_uint8(c->x, ca->x);
+//	uint16_to_uint8(c->y, ca->y);
+//}
+//
+//void coord_aligned_to_coord(const struct coordinate_aligned *ca, 
+//		struct coordinate *c) {
+//	uint8_to_uint16(ca->x, &c->x);
+//	uint8_to_uint16(ca->y, &c->y);
+//	TRACE("Coord-aligned: (%d,%d),(%d,%d) Coord: %d,%d\n", 
+//			ca->x[0],
+//			ca->x[1],
+//			ca->y[0],
+//			ca->y[1],
+//			c->x,
+//			c->y
+//		 );
+//}
 
-void coord_aligned_to_coord(const struct coordinate_aligned *ca, 
-		struct coordinate *c) {
-	uint8_to_uint16(ca->x, &c->x);
-	uint8_to_uint16(ca->y, &c->y);
-}
-
-void neighbor_node_best_path_to_best_path_aligned(
-		const struct neighbor_node_best_path *bp, 
-		struct best_path_aligned *bpa) {
-	uint16_to_uint8(bp->metric, bpa->metric);
-	rimeaddr_copy(&bpa->points_to, &bp->points_to);
-	bpa->hops = bp->hops;
-}
-
-void best_path_aligned_to_neighbor_node_best_path(
-		const struct best_path_aligned *bpa,
-		struct neighbor_node_best_path *bp) {
-	uint8_to_uint16(bpa->metric, &bp->metric);
-	rimeaddr_copy(&bp->points_to, &bpa->points_to);
-	bp->hops = bpa->hops;
-}
-
+//void neighbor_node_best_path_to_best_path_aligned(
+//		const struct neighbor_node_best_path *bp, 
+//		struct best_path_aligned *bpa) {
+//	uint16_to_uint8(bp->metric, bpa->metric);
+//	rimeaddr_copy(&bpa->points_to, &bp->points_to);
+//	bpa->hops = bp->hops;
+//}
+//
+//void best_path_aligned_to_neighbor_node_best_path(
+//		const struct best_path_aligned *bpa,
+//		struct neighbor_node_best_path *bp) {
+//	uint8_to_uint16(bpa->metric, &bp->metric);
+//	rimeaddr_copy(&bp->points_to, &bpa->points_to);
+//	bp->hops = bpa->hops;
+//}
+//
 struct sensor_packet {
 	uint8_t type;
 };
@@ -113,13 +111,13 @@ struct sensor_packet {
  * neighbor req, and flooded throughout the network. */
 struct emergency_packet {
 	uint8_t type;
-	struct coordinate_aligned source; /* of emergency */
+	struct coordinate source; /* of emergency */
 };
 
 /* Sent when we have calculated a new best path. */
 struct best_path_update_packet {
 	uint8_t type;
-	struct best_path_aligned bpa;
+	struct neighbor_node_best_path bp;
 };
 
 #define SETUP_PACKET_SIZE (sizeof(struct setup_packet)-sizeof(rimeaddr_t))
@@ -129,7 +127,7 @@ struct best_path_update_packet {
 struct setup_packet {
 	uint8_t type;
 	rimeaddr_t new_addr;
-	struct coordinate_aligned new_coord;
+	struct coordinate new_coord;
 	int8_t is_exit_node;
 	uint8_t num_neighbors;
 	rimeaddr_t neighbors[1];
@@ -143,8 +141,8 @@ struct setup_packet {
  * packet is only sent once to the node's neighbors. */
 struct node_info_packet {
 	uint8_t type;
-	struct coordinate_aligned coord;
-	struct best_path_aligned bpa;
+	struct coordinate coord;
+	struct neighbor_node_best_path bp;
 };
 
 
@@ -182,7 +180,7 @@ struct node_properties {
 		int8_t is_reset_mode;
 	} state;
 
-	metric_t current_sensors_metric;
+	uint8_t current_sensors_metric[2];
 
 	struct ec c;
 	uint8_t seqno;
@@ -254,22 +252,40 @@ blinking_init() {
 void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 	int i = 0;
 	const rimeaddr_t *addr = sp->neighbors;
-	struct coordinate coord;
 
 	rimeaddr_set_node_addr((rimeaddr_t*)&sp->new_addr);
 
-	coord_aligned_to_coord(&sp->new_coord, &coord);
-	coordinate_set_node_coord(&coord);
+	coordinate_set_node_coord(&sp->new_coord);
 
 	neighbors_clear(&g_np.ns);
 
 	for(; i < sp->num_neighbors; ++i) {
+		LOG("-----------------------\n");
 		neighbors_add(&g_np.ns, addr++);
+		{
+			struct neighbor_node *nn = neighbors_find_neighbor_node(&g_np.ns, addr-1);
+			LOG("neighbor: %d.%d, points_to: (%d.%d), coord: (%d.%d,%d.%d), distance: %d, "
+					"hops: %d, metric: %u\n",
+					neighbor_node_addr(nn)->u8[0], 
+					neighbor_node_addr(nn)->u8[1],
+					nn->bp.points_to.u8[0],
+					nn->bp.points_to.u8[1],
+					neighbor_node_coord(nn)->x[0], 
+					neighbor_node_coord(nn)->x[1], 
+					neighbor_node_coord(nn)->y[0],
+					neighbor_node_coord(nn)->y[1],
+					neighbor_node_distance(nn),
+					neighbor_node_hops(nn),
+					neighbor_node_metric(nn));
+			LOG("-----------------------\n");
+		}
 	}
+	LOG("-----------------------\n");
 	
 	if (sp->is_exit_node) {
 		struct neighbor_node_best_path bp;
-		bp.metric = 0;
+		bp.metric[0] = 0;
+		bp.metric[1] = 0;
 		rimeaddr_copy(&bp.points_to, &rimeaddr_node_addr);
 		bp.hops = -1; /* since we calculate +1 when sending path */
 
@@ -281,15 +297,31 @@ void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 		leds_green(1);
 	}
 
-	LOG("Id: %d.%d, Coord: (%d, %d), is_exit_node: %d ", rimeaddr_node_addr.u8[0],
-			rimeaddr_node_addr.u8[1], coordinate_node.x, coordinate_node.y, g_np.state.is_exit_node);
-	LOG("Neighbors: ");
+	LOG("Id: %d.%d, Coord: (%d.%d, %d.%d), is_exit_node: %d ", rimeaddr_node_addr.u8[0],
+			rimeaddr_node_addr.u8[1], 
+			coordinate_node.x[0], 
+			coordinate_node.x[1], 
+			coordinate_node.y[0], 
+			coordinate_node.y[1],
+			g_np.state.is_exit_node);
+	LOG("Neighbors: \n");
 	{
 		const struct neighbor_node *nn = neighbors_begin(&g_np.ns);
 		for (; nn != NULL;
 				nn = neighbors_next(&g_np.ns)) {
-			LOG("%d.%d, ", neighbor_node_addr(nn)->u8[0],
-					neighbor_node_addr(nn)->u8[1]);
+			LOG("neighbor: %d.%d, points_to: (%d.%d), coord: (%d.%d,%d.%d), distance: %d, "
+					"hops: %d, metric: %u\n",
+					neighbor_node_addr(nn)->u8[0], 
+					neighbor_node_addr(nn)->u8[1],
+					nn->bp.points_to.u8[0],
+					nn->bp.points_to.u8[1],
+					neighbor_node_coord(nn)->x[0], 
+					neighbor_node_coord(nn)->x[1], 
+					neighbor_node_coord(nn)->y[0],
+					neighbor_node_coord(nn)->y[1],
+					neighbor_node_distance(nn),
+					neighbor_node_hops(nn),
+					neighbor_node_metric(nn));
 		}
 	}
 	LOG("\n");
@@ -306,7 +338,9 @@ void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 
 static inline metric_t
 weigh_metrics(distance_t distance) {
-	return 10*distance + g_np.current_sensors_metric;
+	metric_t metric16;
+	uint8_to_uint16(g_np.current_sensors_metric, &metric16);
+	return 10*distance + metric16;
 }
 
 static const struct neighbor_node*
@@ -316,13 +350,20 @@ find_best_exit_path_neighbor() {
 	metric_t min_metric = METRIC_T_MAX;
 	metric_t metric;
 
+	LOG("-----------------------\n");
 	for(;i != NULL; i = neighbors_next(&g_np.ns)) {
-		TRACE("neighbor: %d.%d, points_to_us: %d, coord: (%d,%d), distance: %d, "
-				"metric: %d\n",
-				neighbor_node_addr(i)->u8[0], neighbor_node_addr(i)->u8[1],
-				neighbor_node_points_to_us(i),
-				neighbor_node_coord(i)->x, neighbor_node_coord(i)->y,
+		TRACE("neighbor: %d.%d, points_to: (%d.%d), coord: (%d.%d,%d.%d), distance: %d, "
+				"hops: %d, metric: %u\n",
+				neighbor_node_addr(i)->u8[0], 
+				neighbor_node_addr(i)->u8[1],
+				i->bp.points_to.u8[0],
+				i->bp.points_to.u8[1],
+				neighbor_node_coord(i)->x[0], 
+				neighbor_node_coord(i)->x[1], 
+				neighbor_node_coord(i)->y[0],
+				neighbor_node_coord(i)->y[1],
 				neighbor_node_distance(i),
+				neighbor_node_hops(i),
 				neighbor_node_metric(i));
 
 		if(!neighbor_node_points_to_us(i)) { 
@@ -334,20 +375,26 @@ find_best_exit_path_neighbor() {
 			}
 		}
 	}
+	LOG("-----------------------\n");
 
 	if (g_np.state.is_exit_node) {
 		/* extra checks for exit nodes */
-		if (g_np.current_sensors_metric < min_metric) {
+		uint16_t metric16;
+		uint8_to_uint16(g_np.current_sensors_metric, &metric16);
+		if (metric16 < min_metric) {
 			best = &exit_node;
 		}
 	}
 
 	ASSERT(best != NULL);
-	TRACE("BEST neighbor: %d.%d, points_to_us: %d, coord: (%d,%d), distance: %d, "
+	TRACE("BEST neighbor: %d.%d, points_to_us: %d, coord: (%d.%d,%d.%d), distance: %d, "
 			"metric: %d\n",
 			neighbor_node_addr(best)->u8[0], neighbor_node_addr(best)->u8[1],
 			neighbor_node_points_to_us(best),
-			neighbor_node_coord(best)->x, neighbor_node_coord(best)->y,
+			neighbor_node_coord(best)->x[0], 
+			neighbor_node_coord(best)->x[1], 
+			neighbor_node_coord(best)->y[0],
+			neighbor_node_coord(best)->y[1],
 			neighbor_node_distance(best),
 			neighbor_node_metric(best));
 
@@ -355,15 +402,15 @@ find_best_exit_path_neighbor() {
 }
 
 /* Transforms our best neighbor's best path to our own. */
-void best_neighbor_bp_to_our_bp_aligned(struct best_path_aligned *bpa) {
+void best_neighbor_bp_to_our_bp(struct neighbor_node_best_path *bp) {
 	ASSERT(g_np.bpn != NULL);
 	uint16_to_uint8(
 			neighbor_node_metric(g_np.bpn) +
 			weigh_metrics(neighbor_node_distance(g_np.bpn)),
-			bpa->metric
+			bp->metric
 			);
-	rimeaddr_copy(&bpa->points_to, neighbor_node_addr(g_np.bpn));
-	bpa->hops = neighbor_node_hops(g_np.bpn) + 1;
+	rimeaddr_copy(&bp->points_to, neighbor_node_addr(g_np.bpn));
+	bp->hops = neighbor_node_hops(g_np.bpn) + 1;
 }
 
 static void
@@ -371,16 +418,16 @@ broadcast_best_path() {
 	struct best_path_update_packet bpup;
 
 	bpup.type = BEST_PATH_UPDATE_PACKET;
-	best_neighbor_bp_to_our_bp_aligned(&bpup.bpa);
+	best_neighbor_bp_to_our_bp(&bpup.bp);
 	//neighbor_node_best_path_to_best_path_aligned(&bp, &bpup.bpa);
 
 	LOG("SENDING BEST_PATH_UPDATE_PACKET: metric: [%d %d], points_to: "
 			"%d.%d, hops: %d\n",
-			bpup.bpa.metric[0], 
-			bpup.bpa.metric[1], 
-			bpup.bpa.points_to.u8[0],
-			bpup.bpa.points_to.u8[1], 
-			bpup.bpa.hops);
+			bpup.bp.metric[0], 
+			bpup.bp.metric[1], 
+			bpup.bp.points_to.u8[0],
+			bpup.bp.points_to.u8[1], 
+			bpup.bp.hops);
 
 	ec_reliable_broadcast_ns(&g_np.c, &rimeaddr_node_addr, &rimeaddr_node_addr,
 			0, g_np.seqno++, &bpup, sizeof(struct best_path_update_packet));
@@ -415,8 +462,10 @@ static void update_bpn_and_send_node_info() {
 	g_np.bpn = best;
 
 	nip.type = NODE_INFO_PACKET;
-	coord_to_coord_aligned(&coordinate_node, &nip.coord);
-	best_neighbor_bp_to_our_bp_aligned(&nip.bpa);
+	coordinate_copy(&nip.coord, &coordinate_node);
+	best_neighbor_bp_to_our_bp(&nip.bp);
+	//coord_to_coord_aligned(&coordinate_node, &nip.coord);
+	//best_neighbor_bp_to_our_bp_aligned(&nip.bpa);
 
 	LOG("SENDING NODE_INFO_PACKET: coord: (%d.%d,%d.%d), metric: %d,%d, "
 			"points_to: %d.%d, hops: %d\n",
@@ -424,11 +473,11 @@ static void update_bpn_and_send_node_info() {
 			nip.coord.x[1], 
 			nip.coord.y[0], 
 			nip.coord.y[1], 
-			nip.bpa.metric[0], 
-			nip.bpa.metric[1], 
-			nip.bpa.points_to.u8[0],
-			nip.bpa.points_to.u8[1],
-			nip.bpa.hops);
+			nip.bp.metric[0], 
+			nip.bp.metric[1], 
+			nip.bp.points_to.u8[0],
+			nip.bp.points_to.u8[1],
+			nip.bp.hops);
 	LOG("Sizeof node_info_packet: %d\n", sizeof(struct node_info_packet));
 
 	ec_reliable_broadcast_ns(&g_np.c,
@@ -470,7 +519,7 @@ static void reset_system_packet_handler() {
 	g_np.state.has_sent_node_info = 0;
 
 	queue_buffer_clear(&g_np.emergency_coords);
-	g_np.current_sensors_metric = 0;
+	uint16_to_uint8(0, g_np.current_sensors_metric);
 
 	ec_timesynch_off(&g_np.c);
 
@@ -495,10 +544,10 @@ static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator,
 		case EMERGENCY_PACKET:
 			{
 				struct emergency_packet *ep = (struct emergency_packet*)p;
-				struct coordinate coord;
-				coord_aligned_to_coord(&ep->source, &coord);
-				LOG("RECV EMERGENCY_PACKET: coord: %d, %d\n", coord.x, coord.y);
-				queue_buffer_push_front(&g_np.emergency_coords, &coord);
+				/*coord_aligned_to_coord(&ep->source, &coord);*/
+				LOG("RECV EMERGENCY_PACKET: coord: [%d%d],[%d%d]\n",
+						ep->source.x[0], ep->source.x[1], ep->source.y[0], ep->source.y[1]);
+				queue_buffer_push_front(&g_np.emergency_coords, &ep->source);
 
 				/* forward packet */
 				ec_broadcast(&g_np.c, originator, &rimeaddr_node_addr,
@@ -568,18 +617,16 @@ static void ec_neighbors_recv(struct ec *c, const rimeaddr_t *originator,
 					(struct best_path_update_packet*)p;
 				struct neighbor_node *nn =
 					neighbors_find_neighbor_node(&g_np.ns, sender);
-				struct neighbor_node_best_path bp;
-				best_path_aligned_to_neighbor_node_best_path(&bpup->bpa, &bp);
 				LOG("RECV BEST_PATH_UPDATE_PACKET: metric: %d,%d, points_to: "
 						"%d.%d, hops: %d\n",
-						bpup->bpa.metric[0], 
-						bpup->bpa.metric[1], 
-						bpup->bpa.points_to.u8[0],
-						bpup->bpa.points_to.u8[1], 
-						bpup->bpa.hops);
+						bpup->bp.metric[0], 
+						bpup->bp.metric[1], 
+						bpup->bp.points_to.u8[0],
+						bpup->bp.points_to.u8[1], 
+						bpup->bp.hops);
 				ASSERT(nn != NULL);
 
-				neighbor_node_set_best_path(nn, &bp);
+				neighbor_node_set_best_path(nn, &bpup->bp);
 
 				/* The shortest path could have changed. */
 				if(update_bpn_and_broadcast_new_path_if_changed(nn)) {
@@ -600,26 +647,23 @@ static void ec_neighbors_recv(struct ec *c, const rimeaddr_t *originator,
 				const struct node_info_packet *nip = (struct node_info_packet*)p;
 				struct neighbor_node *nn = 
 					neighbors_find_neighbor_node(&g_np.ns, sender);
-				struct coordinate coord;
-				struct neighbor_node_best_path bp;
-				coord_aligned_to_coord(&nip->coord, &coord);
-				best_path_aligned_to_neighbor_node_best_path(&nip->bpa, &bp);
+				//coord_aligned_to_coord(&nip->coord, &coord);
+				//best_path_aligned_to_neighbor_node_best_path(&nip->bpa, &bp);
 				LOG("RECV NODE_INFO_PACKET: coord: (%d.%d,%d.%d), metric: %d,%d, "
 						"points_to: %d.%d, hops: %d\n",
 						nip->coord.x[0], 
 						nip->coord.x[1], 
 						nip->coord.y[0], 
 						nip->coord.y[1], 
-						nip->bpa.metric[0], 
-						nip->bpa.metric[1], 
-						nip->bpa.points_to.u8[0],
-						nip->bpa.points_to.u8[1],
-						nip->bpa.hops);
-				LOG("Sizeof node_info_packet2: %d\n", sizeof(struct node_info_packet));
+						nip->bp.metric[0], 
+						nip->bp.metric[1], 
+						nip->bp.points_to.u8[0],
+						nip->bp.points_to.u8[1],
+						nip->bp.hops);
 				print_packet_data((uint8_t*)nip, sizeof(struct node_info_packet));
 				ASSERT(nn != NULL);
-				neighbor_node_set_coordinate(nn, &coord);
-				neighbor_node_set_best_path(nn, &bp);
+				neighbor_node_set_coordinate(nn, &nip->coord);
+				neighbor_node_set_best_path(nn, &nip->bp);
 
 				if (!g_np.state.has_sent_node_info) {
 					update_bpn_and_send_node_info();
@@ -698,12 +742,13 @@ int emergency_poll() {
 static
 int abrupt_metric_change_poll(metric_t *metric) {
 	struct sensor_readings r;
+	uint16_t csm;
 	read_sensors(&r);
 
 	*metric = sensor_readings_to_metric(&r);
+	uint8_to_uint16(g_np.current_sensors_metric, &csm);
 
-	if(abs(*metric - g_np.current_sensors_metric) > 
-			ABRUPT_METRIC_CHANGE_THRESHOLD) {
+	if(abs(*metric - csm) > ABRUPT_METRIC_CHANGE_THRESHOLD) {
 		return 1;
 	}
 
@@ -770,6 +815,29 @@ PROCESS_THREAD(fire_process, ev, data) {
 				if (emergency_poll()) {
 					LOG("Polled emergency returned 1\n");
 				}
+		//	} else if(strcmp(data, "test") == 0) {
+		//		struct coordinate coord;
+		//		struct neighbor_node nn;
+		//		struct neighbor_node_best_path bp;
+		//		bp.metric = 500;
+		//		bp.points_to.u8[0] = 6;
+		//		bp.points_to.u8[1] = 7;
+		//		bp.hops = 100;
+		//		LOG("Testing coord\n");
+		//		coord.x = 0xDEAD;
+		//		coord.y = 0xBEEF;
+		//		neighbor_node_set_coordinate(&nn, &coord);
+		//		ASSERT(0xDEAD == neighbor_node_coord(&nn)->x);
+		//		ASSERT(0xBEEF == neighbor_node_coord(&nn)->y);
+		//		LOG("Testing coord ok\n");
+
+		//		neighbor_node_set_best_path(&nn, &bp);
+		//		ASSERT(0xDEAD == neighbor_node_coord(&nn)->x);
+		//		ASSERT(0xBEEF == neighbor_node_coord(&nn)->y);
+		//		ASSERT(500 == neighbor_node_metric(&nn));
+		//		ASSERT(rimeaddr_cmp(&bp.points_to, &nn.bp.points_to));
+		//		ASSERT(100 == neighbor_node_hops(&nn));
+		//		LOG("Testing rimeaddr ok\n");
 			} else if(strcmp(data, "burn") == 0) {
 				struct emergency_packet ep;
 				struct sensor_readings r;
@@ -778,10 +846,10 @@ PROCESS_THREAD(fire_process, ev, data) {
 				blinking_init();
 
 				read_sensors(&r);
-				g_np.current_sensors_metric = 100;/*sensor_readings_to_metric(&r);*/
+				uint16_to_uint8(100, g_np.current_sensors_metric);
 
 				ep.type = EMERGENCY_PACKET;
-				coord_to_coord_aligned(&coordinate_node, &ep.source);
+				ep.source = coordinate_node;
 
 				queue_buffer_push_front(&g_np.emergency_coords, &coordinate_node);
 
@@ -798,12 +866,20 @@ PROCESS_THREAD(fire_process, ev, data) {
 				leds_red(1);
 				g_np.state.has_sensed_emergency = 1;
 			} else if(strcmp(data, "inc") == 0) {
-				g_np.current_sensors_metric += 10;
-				LOG("Current sensor metric: %d\n", g_np.current_sensors_metric);
+				uint16_t now;
+				uint8_to_uint16(g_np.current_sensors_metric, &now);
+				uint16_to_uint8(now+10, g_np.current_sensors_metric);
+				LOG("Current sensor metric: (%d.%d)\n",
+						g_np.current_sensors_metric[0],
+						g_np.current_sensors_metric[1]);
 				broadcast_best_path();
 			} else if(strcmp(data, "dec") == 0) {
-				g_np.current_sensors_metric -= 10;
-				LOG("Current sensor metric: %d\n", g_np.current_sensors_metric);
+				uint16_t now;
+				uint8_to_uint16(g_np.current_sensors_metric, &now);
+				uint16_to_uint8(now-10, g_np.current_sensors_metric);
+				LOG("Current sensor metric: (%d.%d)\n",
+						g_np.current_sensors_metric[0],
+						g_np.current_sensors_metric[1]);
 				broadcast_best_path();
 			} else {
 				LOG("unkown command\n");

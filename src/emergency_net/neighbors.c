@@ -6,6 +6,7 @@
 
 void neighbors_init(struct neighbors *ns) {
 	QUEUE_BUFFER_INIT_WITH_STRUCT(ns, nbuf, sizeof(struct neighbor_node), MAX_NEIGHBORS);
+	TRACE("initing neighbors\n");
 }
 
 static int neighbor_to_addr_cmp(const void *lhs, const void *rhs) {
@@ -20,10 +21,13 @@ void neighbors_add(struct neighbors *ns, const rimeaddr_t *addr) {
 	neighbor_node_set_addr(&nn, addr);
 	neighbor_node_set_best_path(&nn, &neighbor_node_best_path_max);
 
+	TRACE("metric: %u.%u\n", nn.bp.metric[0], nn.bp.metric[1]);
+
 	{
 		struct neighbor_node *ret = 
 			(struct neighbor_node*)queue_buffer_push_front(&ns->nbuf, &nn);
 		ASSERT(ret != NULL);
+		TRACE("metric: %u.%u\n", nn.bp.metric[0], nn.bp.metric[1]);
 	}
 }
 

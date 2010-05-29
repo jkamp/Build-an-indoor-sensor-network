@@ -13,8 +13,8 @@ if (strcmp(data, "1") == 0) {
 		rimeaddr_copy(&sp->new_addr, &addr);
 	}
 	{
-		struct coordinate coord = {0,0};
-		coord_to_coord_aligned(&coord, &sp->new_coord);
+		struct coordinate coord = {{0,0},{0,0}};
+		memcpy(&sp->new_coord, &coord, sizeof(struct coordinate));
 	}
 
 	sp->is_exit_node = 1;
@@ -45,12 +45,12 @@ if (strcmp(data, "1") == 0) {
 		rimeaddr_copy(&sp->new_addr, &addr);
 	}
 	{
-		struct coordinate coord = {1,0};
-		coord_to_coord_aligned(&coord, &sp->new_coord);
+		struct coordinate coord = {{0,1},{0,0}};
+		memcpy(&sp->new_coord, &coord, sizeof(struct coordinate));
 	}
 
 	sp->is_exit_node = 0;
-	sp->num_neighbors = 1;
+	sp->num_neighbors = 2;
 
 	{
 		rimeaddr_t addr;
@@ -59,9 +59,9 @@ if (strcmp(data, "1") == 0) {
 		addr.u8[1] = 0;
 		rimeaddr_copy(neighbor_addr++, &addr);
 
-		/*addr.u8[0] = 3;
+		addr.u8[0] = 3;
 		addr.u8[1] = 0;
-		rimeaddr_copy(neighbor_addr++, &addr);*/
+		rimeaddr_copy(neighbor_addr++, &addr);
 	}
 
 	setup_parse(sp, 0);
@@ -81,8 +81,8 @@ if (strcmp(data, "1") == 0) {
 		rimeaddr_copy(&sp->new_addr, &addr);
 	}
 	{
-		struct coordinate coord = {2,0};
-		coord_to_coord_aligned(&coord, &sp->new_coord);
+		struct coordinate coord = {{0,2},{0,0}};
+		memcpy(&sp->new_coord, &coord, sizeof(struct coordinate));
 	}
 
 	sp->is_exit_node = 0;

@@ -4,8 +4,8 @@
 #include "contiki-conf.h"
 
 struct coordinate {
-	uint16_t x;
-	uint16_t y;
+	uint8_t x[2];
+	uint8_t y[2];
 };
 
 uint16_t coordinate_distance(const struct coordinate *from, 
@@ -13,8 +13,12 @@ uint16_t coordinate_distance(const struct coordinate *from,
 
 void coordinate_set_node_coord(const struct coordinate *coord);
 
-int coordinate_cmp(const struct coordinate *lhs, 
+/*int coordinate_cmp(const struct coordinate *lhs, 
+		const struct coordinate *rhs);*/
+
+void coordinate_copy(const struct coordinate *lhs, 
 		const struct coordinate *rhs);
+
 
 extern struct coordinate coordinate_node;
 extern const struct coordinate coordinate_null;
