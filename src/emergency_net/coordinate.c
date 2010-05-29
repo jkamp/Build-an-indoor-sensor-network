@@ -43,7 +43,7 @@ coordinate_set_node_coord(const struct coordinate *coord) {
 	memcpy(&coordinate_node, coord, sizeof(struct coordinate));
 }
 
-void coordinate_copy(const struct coordinate *to, 
+void coordinate_copy(struct coordinate *to, 
 		const struct coordinate *from) {
-	memcpy(to,from, sizeof(struct coordinate));
+	memcpy(to, from, sizeof(struct coordinate));
 }

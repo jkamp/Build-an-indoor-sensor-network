@@ -16,8 +16,8 @@ void coordinate_set_node_coord(const struct coordinate *coord);
 /*int coordinate_cmp(const struct coordinate *lhs, 
 		const struct coordinate *rhs);*/
 
-void coordinate_copy(const struct coordinate *lhs, 
-		const struct coordinate *rhs);
+void coordinate_copy(struct coordinate *to, 
+		const struct coordinate *from);
 
 
 extern struct coordinate coordinate_node;
