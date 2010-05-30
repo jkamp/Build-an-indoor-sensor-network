@@ -13,8 +13,8 @@ uint16_t coordinate_distance(const struct coordinate *from,
 
 void coordinate_set_node_coord(const struct coordinate *coord);
 
-/*int coordinate_cmp(const struct coordinate *lhs, 
-		const struct coordinate *rhs);*/
+int coordinate_cmp(const void *lhs, 
+		const void *rhs);
 
 void coordinate_copy(struct coordinate *to, 
 		const struct coordinate *from);

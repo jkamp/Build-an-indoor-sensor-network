@@ -22,15 +22,15 @@
 #include "base/log.h"
 
 /* 0 means no simulation */
-#define EMERGENCY_COOJA_SIMULATION 2
+#define EMERGENCY_COOJA_SIMULATION 1
 
 #define EMERGENCYNET_CHANNEL 128
 #define BLINKING_SEQUENCE_LENGTH 8
 #define BLINKING_SEQUENCE_SWITCH_TIME (4*1024)
 #define MAX_FIRE_COORDINATES 10
 
-#define LIGHT_EMERGENCY_THRESHOLD 300
-#define ABRUPT_METRIC_CHANGE_THRESHOLD 100
+#define LIGHT_EMERGENCY_THRESHOLD 400
+#define ABRUPT_METRIC_CHANGE_THRESHOLD 200
 
 
 /****** PACKET TYPES ******/
@@ -39,19 +39,20 @@ enum {
 
 	/* Sent when we have sensed emergency (e.g. fire). This is broadcasted without
 	 * neighbor req, and flooded throughout the network. */
-	EMERGENCY_PACKET=0,
+	EMERGENCY_PACKET,
+	ANTI_EMERGENCY_PACKET,
 
 	/* Sent when we have calculated a new best path. */
-	BEST_PATH_UPDATE_PACKET=1,
+	BEST_PATH_UPDATE_PACKET,
 
 	/* GUI setup packet. Can be sent to the node when the usr button has been
 	 * pushed. Is used for uploading rimeaddr, coord, if it is an exit node, and
 	 * the neighbors of the node. */
-	SETUP_PACKET=2,
+	SETUP_PACKET,
 
 	/* This is sent to tell the sensors to begin exchanging information about
 	 * nearest paths, coordinates etc. See NODE_INFO_PACKET. */
-	INITIALIZE_BEST_PATHS_PACKET=3,
+	INITIALIZE_BEST_PATHS_PACKET,
 
 	/* Sent when INITIALIZE_BEST_PATHS_PACKET is sent for exit nodes and sent
 	 * when regular nodes get NODE_INFO_PACKET from other nodes (not only exit
@@ -59,12 +60,12 @@ enum {
 	 * of neighbors from this packet) and store them so we can start blinking
 	 * immediately and do not need to figure out best paths etc at that time.
 	 * This packet is only sent once to the node's neighbors. */
-	NODE_INFO_PACKET=4,
+	NODE_INFO_PACKET,
 
-	EXTRACT_REPORT_PACKET=5,
-	NODE_REPORT_PACKET=6,
+	EXTRACT_REPORT_PACKET,
+	NODE_REPORT_PACKET,
 
-	RESET_SYSTEM_PACKET=7
+	RESET_SYSTEM_PACKET
 };
 
 
@@ -101,7 +102,7 @@ struct node_info_packet {
 struct node_report_packet {
 	uint8_t type;
 	struct coordinate coord;
-	int8_t has_sensed_emergency;
+	int8_t is_burning;
 	int8_t is_exit_node;
 };
 
@@ -133,7 +134,6 @@ struct node_properties {
 	struct {
 		int8_t is_blinking;
 		int8_t is_burning;
-		int8_t has_sensed_emergency;
 		int8_t is_exit_node;
 		int8_t is_awaiting_setup_packet;
 		int8_t has_sent_node_info;
@@ -157,6 +157,46 @@ static struct node_properties g_np;
 static struct neighbor_node exit_node;
 
 /* FUNCTIONS */
+
+static void 
+add_coordinate_as_burning(const struct coordinate *coord) {
+	struct coordinate *i = 
+		(struct coordinate*)queue_buffer_find(&g_np.emergency_coords, coord,
+				coordinate_cmp);
+	if(i == NULL) {
+		queue_buffer_push_front(&g_np.emergency_coords, coord);
+	}
+}
+
+static void 
+remove_coordinate_as_burning(const struct coordinate *coord) {
+	struct coordinate *i = queue_buffer_find( &g_np.emergency_coords, coord,
+			coordinate_cmp);
+	if(i != NULL) {
+		queue_buffer_free(&g_np.emergency_coords, i);
+	}
+}
+
+static void
+send_emergency_packet() {
+	struct emergency_packet ep;
+	ep.type = EMERGENCY_PACKET;
+	coordinate_copy(&ep.source, &coordinate_node);
+	ec_broadcast(&g_np.c, &rimeaddr_node_addr,
+			&rimeaddr_node_addr, 0, g_np.seqno++, &ep,
+			sizeof(struct emergency_packet));
+}
+
+static void
+send_anti_emergency_packet() {
+	struct emergency_packet ep;
+	ep.type = ANTI_EMERGENCY_PACKET;
+	coordinate_copy(&ep.source, &coordinate_node);
+	ec_broadcast(&g_np.c, &rimeaddr_node_addr,
+			&rimeaddr_node_addr, 0, g_np.seqno++, &ep,
+			sizeof(struct emergency_packet));
+}
+
 
 static void 
 blink(struct rtimer *rt, void *ptr) {
@@ -212,7 +252,7 @@ blinking_init() {
 static void
 set_burning(int8_t on) {
 	g_np.state.is_burning = on;
-	leds_red(1);
+	leds_red(on);
 	leds_blue(0);
 }
 
@@ -286,6 +326,7 @@ void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 		LOG("Burning info to flash OK\n");
 	}
 //#endif
+	ec_set_neighbors(&g_np.c, &g_np.ns);
 }
 
 static inline metric_t
@@ -293,6 +334,11 @@ weigh_metrics(distance_t distance) {
 	metric_t metric16;
 	uint8_to_uint16(g_np.current_sensors_metric, &metric16);
 	return 10*distance + metric16;
+}
+
+static inline metric_t 
+weigh_distance(distance_t distance) {
+	return 10*distance;
 }
 
 static const struct neighbor_node*
@@ -319,7 +365,7 @@ find_best_exit_path_neighbor() {
 				neighbor_node_metric(i));
 
 		if(!neighbor_node_points_to_us(i)) { 
-			metric = weigh_metrics( neighbor_node_distance(i) ) +
+			metric = weigh_distance( neighbor_node_distance(i) ) +
 				neighbor_node_metric(i);
 			if (metric < min_metric) {
 				min_metric = metric;
@@ -327,7 +373,6 @@ find_best_exit_path_neighbor() {
 			}
 		}
 	}
-	LOG("-----------------------\n");
 
 	if (g_np.state.is_exit_node) {
 		/* extra checks for exit nodes */
@@ -349,6 +394,7 @@ find_best_exit_path_neighbor() {
 			neighbor_node_coord(best)->y[1],
 			neighbor_node_distance(best),
 			neighbor_node_metric(best));
+	LOG("-----------------------\n");
 
 	return best;
 }
@@ -464,7 +510,6 @@ static void reset_system_packet_handler() {
 	g_np.bpn = NULL;
 	g_np.state.is_blinking = 0;
 	g_np.state.is_burning = 0;
-	g_np.state.has_sensed_emergency = 0;
 	g_np.state.is_awaiting_setup_packet = 0;
 	/*g_np.state.is_exit_node = 0;*/
 	g_np.state.has_sent_node_info = 0;
@@ -500,7 +545,7 @@ static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator,
 				if(!g_np.state.is_sink_node) {
 					LOG("RECV EMERGENCY_PACKET: coord: [%d%d],[%d%d]\n",
 							ep->source.x[0], ep->source.x[1], ep->source.y[0], ep->source.y[1]);
-					queue_buffer_push_front(&g_np.emergency_coords, &ep->source);
+					add_coordinate_as_burning(&ep->source);
 
 					/* forward packet */
 					ec_broadcast(&g_np.c, originator, &rimeaddr_node_addr,
@@ -514,6 +559,24 @@ static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator,
 					uint8_to_uint16(ep->source.x, &x);
 					uint8_to_uint16(ep->source.y, &y);
 					printf("@EMERGENCY_PACKET:%d.%d\n", x,y);
+				}
+			}
+			break;
+		case ANTI_EMERGENCY_PACKET:
+			{
+				struct emergency_packet *ep = (struct emergency_packet*)p;
+				if(!g_np.state.is_sink_node) {
+					remove_coordinate_as_burning(&ep->source);
+
+					LOG("RECV ANTI EMERGENCY_PACKET: coord: [%d%d],[%d%d]\n",
+							ep->source.x[0], ep->source.x[1], ep->source.y[0], ep->source.y[1]);
+					ec_broadcast(&g_np.c, originator, &rimeaddr_node_addr,
+							hops+1, seqno, data, data_len);
+				} else {
+					/* is sink */
+					printf("@ANTI_EMERGENCY_PACKET:%d.%d\n", 
+							originator->u8[0],
+							originator->u8[1]);
 				}
 			}
 			break;
@@ -539,7 +602,7 @@ static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator,
 				LOG("RECV EXTRACT_REPORT_PACKET\n");
 				nrp.type = NODE_REPORT_PACKET;
 				coordinate_copy(&nrp.coord, &coordinate_node);
-				nrp.has_sensed_emergency = g_np.state.has_sensed_emergency;
+				nrp.is_burning = g_np.state.is_burning;
 				nrp.is_exit_node = g_np.state.is_exit_node;
 
 				ec_broadcast(&g_np.c, originator, &rimeaddr_node_addr,
@@ -693,7 +756,7 @@ static void ec_mesh_recv(struct ec *c, const rimeaddr_t *originator,
 						originator->u8[1],
 						x,
 						y,
-						nrp->has_sensed_emergency,
+						nrp->is_burning,
 						nrp->is_exit_node
 						);
 			}
@@ -721,20 +784,28 @@ metric_t sensor_readings_to_metric(const struct sensor_readings *r) {
 	return r->light;
 }
 
-
 static
-int emergency_poll() {
-	struct sensor_readings r;
-	read_sensors(&r);
-
-	/* we could implement more sensor readings here. but will suffice with
-	 * light for demo. */
-	if (r.light > LIGHT_EMERGENCY_THRESHOLD) {
+int is_emergency(metric_t metric) {
+	if (metric > LIGHT_EMERGENCY_THRESHOLD) {
 		return 1;
 	}
 
 	return 0;
 }
+
+//static
+//int emergency_poll() {
+//	struct sensor_readings r;
+//	read_sensors(&r);
+//
+//	/* we could implement more sensor readings here. but will suffice with
+//	 * light for demo. */
+//	if (r.light > LIGHT_EMERGENCY_THRESHOLD) {
+//		return 1;
+//	}
+//
+//	return 0;
+//}
 
 static
 int abrupt_metric_change_poll(metric_t *metric) {
@@ -804,56 +875,49 @@ PROCESS_THREAD(fire_process, ev, data) {
 				ec_broadcasts_recv(NULL, &addr, &addr, 0, 0, &sp, sizeof(struct sensor_packet));
 			} else if(strcmp(data, "blink") == 0) {
 				leds_blink();
-				leds_blink();
-				leds_blink();
-				leds_blink();
-			} else if(strcmp(data, "poll") == 0) {
-				if (emergency_poll()) {
-					LOG("Polled emergency returned 1\n");
-				}
-			} else if(strcmp(data, "burn") == 0) {
-				struct emergency_packet ep;
-				struct sensor_readings r;
-				LOG("SENSED EMERGENCY\n");
+		//	} else if(strcmp(data, "burn") == 0) {
+		//		struct emergency_packet ep;
+		//		struct sensor_readings r;
+		//		LOG("SENSED EMERGENCY\n");
 
-				blinking_init();
+		//		blinking_init();
 
-				read_sensors(&r);
-				uint16_to_uint8(100, g_np.current_sensors_metric);
+		//		read_sensors(&r);
+		//		uint16_to_uint8(100, g_np.current_sensors_metric);
 
-				ep.type = EMERGENCY_PACKET;
-				coordinate_copy(&ep.source, &coordinate_node);
+		//		ep.type = EMERGENCY_PACKET;
+		//		coordinate_copy(&ep.source, &coordinate_node);
 
-				queue_buffer_push_front(&g_np.emergency_coords, &coordinate_node);
+		//		add_coordinate_as_burning(&coordinate_node);
 
-				ec_broadcast(&g_np.c, &rimeaddr_node_addr,
-						&rimeaddr_node_addr, 0, g_np.seqno++, &ep,
-						sizeof(struct emergency_packet));
+		//		ec_broadcast(&g_np.c, &rimeaddr_node_addr,
+		//				&rimeaddr_node_addr, 0, g_np.seqno++, &ep,
+		//				sizeof(struct emergency_packet));
 
-				broadcast_best_path();
+		//		broadcast_best_path();
 
-				/* Leader node should synchronize every 30 sec. New leader
-				 * should be elected if we hit timeout of 60 sec. */
-				ec_timesynch_network(&g_np.c);
+		//		/* Leader node should synchronize every 30 sec. New leader
+		//		 * should be elected if we hit timeout of 60 sec. */
+		//		ec_timesynch_network(&g_np.c);
 
-				set_burning(1);
-				g_np.state.has_sensed_emergency = 1;
-			} else if(strcmp(data, "inc") == 0) {
-				uint16_t now;
-				uint8_to_uint16(g_np.current_sensors_metric, &now);
-				uint16_to_uint8(now+100, g_np.current_sensors_metric);
-				LOG("Current sensor metric: (%d.%d)\n",
-						g_np.current_sensors_metric[0],
-						g_np.current_sensors_metric[1]);
-				broadcast_best_path();
-			} else if(strcmp(data, "dec") == 0) {
-				uint16_t now;
-				uint8_to_uint16(g_np.current_sensors_metric, &now);
-				uint16_to_uint8(now-100, g_np.current_sensors_metric);
-				LOG("Current sensor metric: (%d.%d)\n",
-						g_np.current_sensors_metric[0],
-						g_np.current_sensors_metric[1]);
-				broadcast_best_path();
+		//		set_burning(1);
+		//		g_np.state.has_sensed_emergency = 1;
+		//	} else if(strcmp(data, "inc") == 0) {
+		//		uint16_t now;
+		//		uint8_to_uint16(g_np.current_sensors_metric, &now);
+		//		uint16_to_uint8(now+100, g_np.current_sensors_metric);
+		//		LOG("Current sensor metric: (%d.%d)\n",
+		//				g_np.current_sensors_metric[0],
+		//				g_np.current_sensors_metric[1]);
+		//		broadcast_best_path();
+		//	} else if(strcmp(data, "dec") == 0) {
+		//		uint16_t now;
+		//		uint8_to_uint16(g_np.current_sensors_metric, &now);
+		//		uint16_to_uint8(now-100, g_np.current_sensors_metric);
+		//		LOG("Current sensor metric: (%d.%d)\n",
+		//				g_np.current_sensors_metric[0],
+		//				g_np.current_sensors_metric[1]);
+		//		broadcast_best_path();
 
 			/** GUI STUFF **/
 			} else if(strcmp(data, "sink") == 0) {
@@ -959,53 +1023,43 @@ PROCESS_THREAD(fire_process, ev, data) {
 				LOG("unkown command\n");
 			}
 		} else if(etimer_expired(&emergency_check_timer)) {
-			if(!g_np.state.is_awaiting_setup_packet) {
-				if(!g_np.state.has_sensed_emergency) {
-					if (emergency_poll()) {
+			if(!g_np.state.is_awaiting_setup_packet || !g_np.state.is_sink_node) {
+				static metric_t current_metric;
+				if (abrupt_metric_change_poll(&current_metric)) {
+					uint16_to_uint8(current_metric,
+							g_np.current_sensors_metric);
+					if (is_emergency(current_metric)) {
 						/* we sensed emergency! */
 						if (g_np.bpn != NULL) {
-							struct emergency_packet ep;
-							struct sensor_readings r;
-							LOG("SENSED EMERGENCY\n");
+							if (!g_np.state.is_burning) {
+								LOG("Sensed emergency\n");
+								blinking_init();
+								add_coordinate_as_burning(&coordinate_node);
 
-							blinking_init();
+								send_emergency_packet();
+								ec_timesynch_network(&g_np.c);
 
-							read_sensors(&r);
-							uint16_to_uint8(sensor_readings_to_metric(&r),
-									g_np.current_sensors_metric);
-
-							ep.type = EMERGENCY_PACKET;
-							coordinate_copy(&ep.source, &coordinate_node);
-
-							queue_buffer_push_front(&g_np.emergency_coords, &coordinate_node);
-
-							ec_broadcast(&g_np.c, &rimeaddr_node_addr,
-									&rimeaddr_node_addr, 0, g_np.seqno++, &ep,
-									sizeof(struct emergency_packet));
-
-							broadcast_best_path();
-
-							/* Leader node should synchronize every 30 sec. New leader
-							 * should be elected if we hit timeout of 60 sec. */
-							ec_timesynch_network(&g_np.c);
-
-							g_np.state.has_sensed_emergency = 1;
-							set_burning(1);
+								broadcast_best_path();
+								set_burning(1);
+							}
 						} else {
 							LOG("Sensed emergency, but not initialized\n");
 						}
-					}
-				} else {
-					metric_t current_metric;
-					if (abrupt_metric_change_poll(&current_metric)) {
-						LOG("Abrupt metric change\n");
-						uint16_to_uint8(current_metric, g_np.current_sensors_metric);
-						broadcast_best_path();
-						if(emergency_poll()) {
-							set_burning(1);
-						} else {
+					} else if (g_np.state.is_blinking /* TODO: should probably
+														 change this to
+														 something like
+														 has_system_sensed_fire
+														 */) {
+						if (g_np.state.is_burning) {
+							/* we're not burning anymore */
+							LOG("Sensed ANTI emergency\n");
+							send_anti_emergency_packet();
+							remove_coordinate_as_burning(&coordinate_node);
 							set_burning(0);
+							blinking_update();
 						}
+
+						broadcast_best_path();
 					}
 				}
 			}

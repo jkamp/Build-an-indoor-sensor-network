@@ -33,7 +33,6 @@ if (strcmp(data, "1") == 0) {
 
 	setup_parse(sp,0);
 
-	ec_set_neighbors(&g_np.c, &g_np.ns);
 } 
 else if (strcmp(data, "2") == 0) {
 	uint8_t tmp[SETUP_PACKET_SIZE+3*sizeof(rimeaddr_t)] = {0};
@@ -73,7 +72,6 @@ else if (strcmp(data, "2") == 0) {
 
 	setup_parse(sp, 0);
 
-	ec_set_neighbors(&g_np.c, &g_np.ns);
 }
 else if (strcmp(data, "3") == 0) {
 	uint8_t tmp[SETUP_PACKET_SIZE+2*sizeof(rimeaddr_t)] = {0};
@@ -109,7 +107,6 @@ else if (strcmp(data, "3") == 0) {
 
 	setup_parse(sp, 0);
 
-	ec_set_neighbors(&g_np.c, &g_np.ns);
 }
 else if (strcmp(data, "4") == 0) {
 	uint8_t tmp[SETUP_PACKET_SIZE+2*sizeof(rimeaddr_t)] = {0};
@@ -145,7 +142,6 @@ else if (strcmp(data, "4") == 0) {
 
 	setup_parse(sp, 0);
 
-	ec_set_neighbors(&g_np.c, &g_np.ns);
 }
 else if (strcmp(data, "5") == 0) {
 	uint8_t tmp[SETUP_PACKET_SIZE+2*sizeof(rimeaddr_t)] = {0};
@@ -181,7 +177,6 @@ else if (strcmp(data, "5") == 0) {
 
 	setup_parse(sp, 0);
 
-	ec_set_neighbors(&g_np.c, &g_np.ns);
 }
 else if (strcmp(data, "6") == 0) {
 	uint8_t tmp[SETUP_PACKET_SIZE+2*sizeof(rimeaddr_t)] = {0};
@@ -217,7 +212,6 @@ else if (strcmp(data, "6") == 0) {
 
 	setup_parse(sp, 0);
 
-	ec_set_neighbors(&g_np.c, &g_np.ns);
 }
 else if (strcmp(data, "7") == 0) {
 	uint8_t tmp[SETUP_PACKET_SIZE+3*sizeof(rimeaddr_t)] = {0};
@@ -257,7 +251,6 @@ else if (strcmp(data, "7") == 0) {
 
 	setup_parse(sp,0);
 
-	ec_set_neighbors(&g_np.c, &g_np.ns);
 }
 else if (strcmp(data, "8") == 0) {
 	uint8_t tmp[SETUP_PACKET_SIZE+1*sizeof(rimeaddr_t)] = {0};
@@ -289,4 +282,3 @@ else if (strcmp(data, "8") == 0) {
 
 	setup_parse(sp,0);
 
-	ec_set_neighbors(&g_np.c, &g_np.ns);

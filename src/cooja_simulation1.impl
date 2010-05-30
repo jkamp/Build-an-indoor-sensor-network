@@ -29,8 +29,6 @@ if (strcmp(data, "1") == 0) {
 
 	setup_parse(sp,0);
 
-	ec_set_neighbors(&g_np.c, &g_np.ns);
-
 } else if(strcmp(data, "2") == 0) {
 	uint8_t tmp[SETUP_PACKET_SIZE+2*sizeof(rimeaddr_t)] = {0};
 	struct setup_packet *sp = (struct setup_packet*)tmp;
@@ -66,7 +64,6 @@ if (strcmp(data, "1") == 0) {
 
 	setup_parse(sp, 0);
 
-	ec_set_neighbors(&g_np.c, &g_np.ns);
 } else if(strcmp(data, "3") == 0) {
 	uint8_t tmp[SETUP_PACKET_SIZE+1*sizeof(rimeaddr_t)] = {0};
 	struct setup_packet *sp = (struct setup_packet*)tmp;
@@ -98,4 +95,3 @@ if (strcmp(data, "1") == 0) {
 
 	setup_parse(sp, 0);
 
-	ec_set_neighbors(&g_np.c, &g_np.ns);

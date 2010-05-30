@@ -28,10 +28,17 @@ uint16_t coordinate_distance(const struct coordinate *from, const struct
 	return diffx + diffy;
 }
 
-/*int coordinate_cmp(const struct coordinate *lhs, 
-		const struct coordinate *rhs) {
-	return lhs->x == rhs->x && lhs->y == rhs->y;
-}*/
+int coordinate_cmp(const void *l, 
+		const void *r) {
+
+	const struct coordinate *lhs = (struct coordinate*)l;
+	const struct coordinate *rhs = (struct coordinate*)r;
+
+	return lhs->x[0] == rhs->x[0] && 
+		lhs->x[1] == rhs->x[1] && 
+		lhs->y[0] == rhs->y[0] && 
+		lhs->y[1] == rhs->y[1];
+}
 
 void
 coordinate_set_node_coord(const struct coordinate *coord) {
