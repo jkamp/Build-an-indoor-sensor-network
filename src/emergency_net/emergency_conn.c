@@ -455,6 +455,7 @@ static void broadcast_recv(struct abc_conn *bc) {
 	} else {
 		LOG("[BROADCAST DATA RECV] ");
 		DEBUG_PACKET(p);
+		print_packet_data((uint8_t*)p->data, data_len);
 		c->cb->broadcast_recv(c, &p->hdr.originator, &p->hdr.sender,
 				p->hdr.hops, p->hdr.seqno, p->data, data_len);
 		store_packet_for_dupe_checks(c, p);

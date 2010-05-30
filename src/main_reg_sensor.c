@@ -136,6 +136,7 @@ struct node_properties {
 		int8_t is_awaiting_setup_packet;
 		int8_t has_sent_node_info;
 		int8_t is_reset_mode;
+		int8_t is_sink_node;
 	} state;
 
 	uint8_t current_sensors_metric[2];
@@ -479,15 +480,24 @@ static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator,
 		case EMERGENCY_PACKET:
 			{
 				struct emergency_packet *ep = (struct emergency_packet*)p;
-				LOG("RECV EMERGENCY_PACKET: coord: [%d%d],[%d%d]\n",
-						ep->source.x[0], ep->source.x[1], ep->source.y[0], ep->source.y[1]);
-				queue_buffer_push_front(&g_np.emergency_coords, &ep->source);
+				if(!g_np.state.is_sink_node) {
+					LOG("RECV EMERGENCY_PACKET: coord: [%d%d],[%d%d]\n",
+							ep->source.x[0], ep->source.x[1], ep->source.y[0], ep->source.y[1]);
+					queue_buffer_push_front(&g_np.emergency_coords, &ep->source);
 
-				/* forward packet */
-				ec_broadcast(&g_np.c, originator, &rimeaddr_node_addr,
-						hops+1, seqno, data, data_len);
+					/* forward packet */
+					ec_broadcast(&g_np.c, originator, &rimeaddr_node_addr,
+							hops+1, seqno, data, data_len);
 
-				blinking_init();
+					blinking_init();
+				} else {
+					/* is sink */
+					uint16_t x;
+					uint16_t y;
+					uint8_to_uint16(ep->source.x, &x);
+					uint8_to_uint16(ep->source.y, &y);
+					printf("@EMERGENCY_PACKET:%d.%d\n", x,y);
+				}
 			}
 			break;
 		case SETUP_PACKET:
@@ -827,7 +837,9 @@ PROCESS_THREAD(fire_process, ev, data) {
 				broadcast_best_path();
 
 			/** GUI STUFF **/
-			} else if(strcmp(data, "extract_report") == 0) {
+			} else if(strcmp(data, "sink") == 0) {
+				g_np.state.is_sink_node = 1;
+			} else if(strcmp(data, "extract_report_packet") == 0) {
 				struct sensor_packet p;
 				p.type = EXTRACT_REPORT_PACKET;
 				ec_broadcast(&g_np.c, &rimeaddr_node_addr, &rimeaddr_node_addr,
@@ -922,7 +934,7 @@ PROCESS_THREAD(fire_process, ev, data) {
 					LOG("\n");
 
 					ec_broadcast(&g_np.c, &rimeaddr_node_addr, &rimeaddr_node_addr,
-							0, g_np.seqno++, &sp, data_len);
+							0, g_np.seqno++, sp, data_len);
 				}
 			} else {
 				LOG("unkown command\n");

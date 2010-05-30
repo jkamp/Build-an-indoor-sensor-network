@@ -17,7 +17,7 @@
 #define ASSERT(x) \
 	do { \
 		if(!(x)){ \
-	   		LOG("ASSERT FAILED @ %s %d\n", __FILE__, __LINE__);  \
+	   		TRACE("ASSERT FAILED\n");  \
 			exit(-1); \
 		} \
 	}while(0);
