@@ -332,11 +332,11 @@ void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 static inline metric_t
 weigh_metrics(distance_t distance) {
 	metric_t metric16;
-	if (!g_np.state.is_burning) {
-		uint8_to_uint16(g_np.current_sensors_metric, &metric16);
-	} else {
-		uint8_to_uint16(10*g_np.current_sensors_metric, &metric16);
+	uint8_to_uint16(g_np.current_sensors_metric, &metric16);
+	if (g_np.state.is_burning) {
+		metric16 *= 10;
 	}
+
 	return 100*distance + metric16;
 }
 
