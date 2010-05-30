@@ -3,7 +3,7 @@
 
 #include "net/rime/rimeaddr.h"
 
-#define MAX_PACKET_SIZE 24
+#define MAX_PACKET_SIZE 32
 
 #define IS_PACKET_FLAG_SET(packet, flag) (((packet)->hdr.flags & (flag)) == (flag))
 

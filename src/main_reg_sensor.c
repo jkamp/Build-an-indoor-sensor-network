@@ -10,7 +10,7 @@
 #include "sys/rtimer.h"
 #include "net/rime/timesynch.h"
 
-//#include "string.h"
+#include "string.h"
 //#include "limits.h"
 
 #include "emergency_net/emergency_conn.h"
@@ -26,7 +26,7 @@
 
 #define EMERGENCYNET_CHANNEL 128
 #define BLINKING_SEQUENCE_LENGTH 8
-#define BLINKING_SEQUENCE_SWITCH_TIME (4*1024)
+#define BLINKING_SEQUENCE_SWITCH_TIME (2*1024)
 #define MAX_FIRE_COORDINATES 10
 
 #define LIGHT_EMERGENCY_THRESHOLD 300
@@ -36,94 +36,53 @@
 /****** PACKET TYPES ******/
 enum {
 	/* System in action */
+
+	/* Sent when we have sensed emergency (e.g. fire). This is broadcasted without
+	 * neighbor req, and flooded throughout the network. */
 	EMERGENCY_PACKET=0,
+
+	/* Sent when we have calculated a new best path. */
 	BEST_PATH_UPDATE_PACKET=1,
 
-	/* Setup of the system */
+	/* GUI setup packet. Can be sent to the node when the usr button has been
+	 * pushed. Is used for uploading rimeaddr, coord, if it is an exit node, and
+	 * the neighbors of the node. */
 	SETUP_PACKET=2,
 
+	/* This is sent to tell the sensors to begin exchanging information about
+	 * nearest paths, coordinates etc. See NODE_INFO_PACKET. */
 	INITIALIZE_BEST_PATHS_PACKET=3,
 
-	/* Contains: 
-	 * - Coordinate 
-	 * - Best path */
+	/* Sent when INITIALIZE_BEST_PATHS_PACKET is sent for exit nodes and sent
+	 * when regular nodes get NODE_INFO_PACKET from other nodes (not only exit
+	 * nodes). This to be able to calculate nearest paths (we get coordinates
+	 * of neighbors from this packet) and store them so we can start blinking
+	 * immediately and do not need to figure out best paths etc at that time.
+	 * This packet is only sent once to the node's neighbors. */
 	NODE_INFO_PACKET=4,
 
-	EXTRACT_INFO_PACKET=5,
+	EXTRACT_REPORT_PACKET=5,
+	NODE_REPORT_PACKET=6,
 
-	RESET_SYSTEM_PACKET=6
+	RESET_SYSTEM_PACKET=7
 };
 
 
-/* used to convert 16bit metrics to 8bits for sending */
-//struct best_path_aligned {
-//	uint8_t metric[2];
-//	rimeaddr_t points_to;
-//	uint8_t hops;
-//};
-
-//struct coordinate_aligned {
-//	uint8_t x[2];
-//	uint8_t y[2];
-//};
-
-//void coord_to_coord_aligned(const struct coordinate *c, 
-//		struct coordinate_aligned *ca) {
-//	uint16_to_uint8(c->x, ca->x);
-//	uint16_to_uint8(c->y, ca->y);
-//}
-//
-//void coord_aligned_to_coord(const struct coordinate_aligned *ca, 
-//		struct coordinate *c) {
-//	uint8_to_uint16(ca->x, &c->x);
-//	uint8_to_uint16(ca->y, &c->y);
-//	TRACE("Coord-aligned: (%d,%d),(%d,%d) Coord: %d,%d\n", 
-//			ca->x[0],
-//			ca->x[1],
-//			ca->y[0],
-//			ca->y[1],
-//			c->x,
-//			c->y
-//		 );
-//}
-
-//void neighbor_node_best_path_to_best_path_aligned(
-//		const struct neighbor_node_best_path *bp, 
-//		struct best_path_aligned *bpa) {
-//	uint16_to_uint8(bp->metric, bpa->metric);
-//	rimeaddr_copy(&bpa->points_to, &bp->points_to);
-//	bpa->hops = bp->hops;
-//}
-//
-//void best_path_aligned_to_neighbor_node_best_path(
-//		const struct best_path_aligned *bpa,
-//		struct neighbor_node_best_path *bp) {
-//	uint8_to_uint16(bpa->metric, &bp->metric);
-//	rimeaddr_copy(&bp->points_to, &bpa->points_to);
-//	bp->hops = bpa->hops;
-//}
-//
 struct sensor_packet {
 	uint8_t type;
 };
 
-/* Sent when we have sensed emergency (e.g. fire). This is broadcasted without
- * neighbor req, and flooded throughout the network. */
 struct emergency_packet {
 	uint8_t type;
 	struct coordinate source; /* of emergency */
 };
 
-/* Sent when we have calculated a new best path. */
 struct best_path_update_packet {
 	uint8_t type;
 	struct neighbor_node_best_path bp;
 };
 
 #define SETUP_PACKET_SIZE (sizeof(struct setup_packet)-sizeof(rimeaddr_t))
-/* GUI setup packet. Can be sent to the node when the usr button has been
- * pushed. Is used for uploading rimeaddr, coord, if it is an exit node, and
- * the neighbors of the node. */
 struct setup_packet {
 	uint8_t type;
 	rimeaddr_t new_addr;
@@ -133,22 +92,21 @@ struct setup_packet {
 	rimeaddr_t neighbors[1];
 };
 
-/* Sent when INITIALIZE_BEST_PATHS_PACKET is sent (for exit nodes) and sent
- * when regular nodes get NODE_INFO_PACKET from other nodes (not only exit
- * nodes). This to be able to calculate nearest paths (we get coordinates of
- * neighbors from this packet) and store them so we can start blinking
- * immediately and do not need to figure out best paths etc at that time. This
- * packet is only sent once to the node's neighbors. */
 struct node_info_packet {
 	uint8_t type;
 	struct coordinate coord;
 	struct neighbor_node_best_path bp;
 };
 
+struct node_report_packet {
+	uint8_t type;
+	struct coordinate coord;
+	int8_t is_exit_node;
+};
+
 
 enum blinking_sequence_state {
-	ON = 0, OFF_1 = 1, OFF_2 = 2, OFF_3 = 3
-	, OFF_4 = 4, OFF_5 = 5, OFF_6 = 6,
+	ON = 0, OFF_1 = 1, OFF_2 = 2, OFF_3 = 3 , OFF_4 = 4, OFF_5 = 5, OFF_6 = 6,
 	OFF_7 = 7
 };
 
@@ -260,27 +218,8 @@ void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 	neighbors_clear(&g_np.ns);
 
 	for(; i < sp->num_neighbors; ++i) {
-		LOG("-----------------------\n");
 		neighbors_add(&g_np.ns, addr++);
-		{
-			struct neighbor_node *nn = neighbors_find_neighbor_node(&g_np.ns, addr-1);
-			LOG("neighbor: %d.%d, points_to: (%d.%d), coord: (%d.%d,%d.%d), distance: %d, "
-					"hops: %d, metric: %u\n",
-					neighbor_node_addr(nn)->u8[0], 
-					neighbor_node_addr(nn)->u8[1],
-					nn->bp.points_to.u8[0],
-					nn->bp.points_to.u8[1],
-					neighbor_node_coord(nn)->x[0], 
-					neighbor_node_coord(nn)->x[1], 
-					neighbor_node_coord(nn)->y[0],
-					neighbor_node_coord(nn)->y[1],
-					neighbor_node_distance(nn),
-					neighbor_node_hops(nn),
-					neighbor_node_metric(nn));
-			LOG("-----------------------\n");
-		}
 	}
-	LOG("-----------------------\n");
 	
 	if (sp->is_exit_node) {
 		struct neighbor_node_best_path bp;
@@ -297,14 +236,14 @@ void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 		leds_green(1);
 	}
 
-	LOG("Id: %d.%d, Coord: (%d.%d, %d.%d), is_exit_node: %d ", rimeaddr_node_addr.u8[0],
+	LOG("Id: %d.%d, Coord: (%d.%d, %d.%d), is_exit_node: %d\n", rimeaddr_node_addr.u8[0],
 			rimeaddr_node_addr.u8[1], 
 			coordinate_node.x[0], 
 			coordinate_node.x[1], 
 			coordinate_node.y[0], 
 			coordinate_node.y[1],
 			g_np.state.is_exit_node);
-	LOG("Neighbors: \n");
+	LOG("Neighbors:\n");
 	{
 		const struct neighbor_node *nn = neighbors_begin(&g_np.ns);
 		for (; nn != NULL;
@@ -324,7 +263,6 @@ void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 					neighbor_node_metric(nn));
 		}
 	}
-	LOG("\n");
 
 #ifndef EMERGENCY_COOJA_SIMULATION
 	if(!is_from_flash) {
@@ -409,6 +347,7 @@ void best_neighbor_bp_to_our_bp(struct neighbor_node_best_path *bp) {
 			weigh_metrics(neighbor_node_distance(g_np.bpn)),
 			bp->metric
 			);
+
 	rimeaddr_copy(&bp->points_to, neighbor_node_addr(g_np.bpn));
 	bp->hops = neighbor_node_hops(g_np.bpn) + 1;
 }
@@ -419,7 +358,6 @@ broadcast_best_path() {
 
 	bpup.type = BEST_PATH_UPDATE_PACKET;
 	best_neighbor_bp_to_our_bp(&bpup.bp);
-	//neighbor_node_best_path_to_best_path_aligned(&bp, &bpup.bpa);
 
 	LOG("SENDING BEST_PATH_UPDATE_PACKET: metric: [%d %d], points_to: "
 			"%d.%d, hops: %d\n",
@@ -464,8 +402,6 @@ static void update_bpn_and_send_node_info() {
 	nip.type = NODE_INFO_PACKET;
 	coordinate_copy(&nip.coord, &coordinate_node);
 	best_neighbor_bp_to_our_bp(&nip.bp);
-	//coord_to_coord_aligned(&coordinate_node, &nip.coord);
-	//best_neighbor_bp_to_our_bp_aligned(&nip.bpa);
 
 	LOG("SENDING NODE_INFO_PACKET: coord: (%d.%d,%d.%d), metric: %d,%d, "
 			"points_to: %d.%d, hops: %d\n",
@@ -478,7 +414,6 @@ static void update_bpn_and_send_node_info() {
 			nip.bp.points_to.u8[0],
 			nip.bp.points_to.u8[1],
 			nip.bp.hops);
-	LOG("Sizeof node_info_packet: %d\n", sizeof(struct node_info_packet));
 
 	ec_reliable_broadcast_ns(&g_np.c,
 			&rimeaddr_node_addr, &rimeaddr_node_addr, 0,
@@ -500,11 +435,11 @@ static void initialize_best_path_packet_handler() {
 		update_bpn_and_send_node_info();
 		g_np.state.has_sent_node_info = 1;
 	}
-
 }
 
 static void reset_system_packet_handler() {
-	struct neighbor_node *nn = (struct neighbor_node*)neighbors_begin(&g_np.ns);
+	struct neighbor_node *nn = 
+		(struct neighbor_node*)neighbors_begin(&g_np.ns);
 	leds_on(LEDS_ALL);
 
 	for(; nn != NULL; nn = (struct neighbor_node*)neighbors_next(&g_np.ns)) {
@@ -544,7 +479,6 @@ static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator,
 		case EMERGENCY_PACKET:
 			{
 				struct emergency_packet *ep = (struct emergency_packet*)p;
-				/*coord_aligned_to_coord(&ep->source, &coord);*/
 				LOG("RECV EMERGENCY_PACKET: coord: [%d%d],[%d%d]\n",
 						ep->source.x[0], ep->source.x[1], ep->source.y[0], ep->source.y[1]);
 				queue_buffer_push_front(&g_np.emergency_coords, &ep->source);
@@ -556,6 +490,14 @@ static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator,
 				blinking_init();
 			}
 			break;
+		case SETUP_PACKET:
+			LOG("RECV SETUP_PACKET\n");
+			if (g_np.state.is_awaiting_setup_packet) {
+				g_np.state.is_awaiting_setup_packet = 0;
+				setup_parse((const struct setup_packet*)p, 0);
+				leds_blink();
+			}
+			break;
 		case INITIALIZE_BEST_PATHS_PACKET:
 			LOG("RECV INITIALIZE_BEST_PATHS_PACKET\n");
 			ec_reliable_broadcast_ns(&g_np.c,
@@ -564,12 +506,19 @@ static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator,
 
 			initialize_best_path_packet_handler();
 			break;
-		case SETUP_PACKET:
-			LOG("RECV SETUP_PACKET\n");
-			if (g_np.state.is_awaiting_setup_packet) {
-				g_np.state.is_awaiting_setup_packet = 0;
-				setup_parse((const struct setup_packet*)p, 0);
-				leds_blink();
+		case EXTRACT_REPORT_PACKET:
+			{
+				struct node_report_packet nrp;
+				LOG("RECV EXTRACT_REPORT_PACKET\n");
+				nrp.type = NODE_REPORT_PACKET;
+				coordinate_copy(&nrp.coord, &coordinate_node);
+				nrp.is_exit_node = g_np.state.is_exit_node;
+
+				ec_broadcast(&g_np.c, originator, &rimeaddr_node_addr,
+						hops+1, seqno, data, data_len);
+
+				ec_mesh(&g_np.c, originator, g_np.seqno++, &nrp, sizeof(struct
+							node_report_packet));
 			}
 			break;
 		case RESET_SYSTEM_PACKET:
@@ -698,12 +647,30 @@ ec_timesynch_recv(struct ec *c) {
 static void ec_mesh_recv(struct ec *c, const rimeaddr_t *originator,
 		uint8_t hops, uint8_t seqno, const void *data, uint8_t data_len) {
 	const struct sensor_packet *p = (struct sensor_packet*)data;
+
 	switch(p->type) {
-	case EXTRACT_INFO_PACKET:
-		LOG("RECV EXTRACT_INFO_PACKET\n");
-		break;
-	default:
-		ASSERT(0);
+		case NODE_REPORT_PACKET:
+			{
+				const struct node_report_packet *nrp = 
+					(struct node_report_packet*)p;
+				uint16_t x;
+				uint16_t y;
+				uint8_to_uint16(nrp->coord.x, &x);
+				uint8_to_uint16(nrp->coord.y, &y);
+				LOG("RECV NODE_REPORT_PACKET\n");
+
+				/* GUI SHOULD PARSE THIS. */
+				printf("@NODE_REPORT_PACKET:%d.%d:%d.%d:%d\n",
+						originator->u8[0],
+						originator->u8[1],
+						x,
+						y,
+						nrp->is_exit_node);
+			}
+			break;
+		default:
+			LOG("ptype: %d\n", p->type);
+			ASSERT(0);
 	}
 
 }
@@ -815,29 +782,6 @@ PROCESS_THREAD(fire_process, ev, data) {
 				if (emergency_poll()) {
 					LOG("Polled emergency returned 1\n");
 				}
-		//	} else if(strcmp(data, "test") == 0) {
-		//		struct coordinate coord;
-		//		struct neighbor_node nn;
-		//		struct neighbor_node_best_path bp;
-		//		bp.metric = 500;
-		//		bp.points_to.u8[0] = 6;
-		//		bp.points_to.u8[1] = 7;
-		//		bp.hops = 100;
-		//		LOG("Testing coord\n");
-		//		coord.x = 0xDEAD;
-		//		coord.y = 0xBEEF;
-		//		neighbor_node_set_coordinate(&nn, &coord);
-		//		ASSERT(0xDEAD == neighbor_node_coord(&nn)->x);
-		//		ASSERT(0xBEEF == neighbor_node_coord(&nn)->y);
-		//		LOG("Testing coord ok\n");
-
-		//		neighbor_node_set_best_path(&nn, &bp);
-		//		ASSERT(0xDEAD == neighbor_node_coord(&nn)->x);
-		//		ASSERT(0xBEEF == neighbor_node_coord(&nn)->y);
-		//		ASSERT(500 == neighbor_node_metric(&nn));
-		//		ASSERT(rimeaddr_cmp(&bp.points_to, &nn.bp.points_to));
-		//		ASSERT(100 == neighbor_node_hops(&nn));
-		//		LOG("Testing rimeaddr ok\n");
 			} else if(strcmp(data, "burn") == 0) {
 				struct emergency_packet ep;
 				struct sensor_readings r;
@@ -881,6 +825,105 @@ PROCESS_THREAD(fire_process, ev, data) {
 						g_np.current_sensors_metric[0],
 						g_np.current_sensors_metric[1]);
 				broadcast_best_path();
+
+			/** GUI STUFF **/
+			} else if(strcmp(data, "extract_report") == 0) {
+				struct sensor_packet p;
+				p.type = EXTRACT_REPORT_PACKET;
+				ec_broadcast(&g_np.c, &rimeaddr_node_addr, &rimeaddr_node_addr,
+						0, g_np.seqno++, &p, sizeof(struct sensor_packet));
+
+			} else if(strncmp(data, "send_setup_packet", 
+						sizeof("send_setup_packet")-1) == 0) {
+
+				/* send_setup_packet:addr[0].addr[1]:coordx.coordy:is_exit_node:
+				 * neighbor1[0].neighbor1[1]:
+				 * neighbor2[0].neighbor2[1]:
+				 * neighbor3[0].neighbor3[1] 
+				 * ... 
+				 * 
+				 * eg:
+				 * send_setup_packet:1.0:100.110:1:2.0:3.0:4.0:5.0
+				 *
+				 * */
+				uint8_t tmp[SETUP_PACKET_SIZE+
+					MAX_NEIGHBORS*sizeof(rimeaddr_t)] = {0};
+				struct setup_packet *sp = (struct setup_packet*)tmp;
+				const char *entry = strtok(data,":");
+
+				sp->type = SETUP_PACKET;
+
+				ASSERT(entry != NULL);
+				entry = strtok(NULL, ".");
+				ASSERT(entry != NULL);
+
+				/* parse addr */
+				sp->new_addr.u8[0] = (uint8_t)atoi(entry);
+				entry = strtok(NULL, ":");
+				ASSERT(entry != NULL);
+				sp->new_addr.u8[1] = (uint8_t)atoi(entry);
+
+				/* parse coord */
+				entry = strtok(NULL, ".");
+				ASSERT(entry != NULL);
+				{
+					uint16_t coord = (uint16_t)atoi(entry);
+					uint16_to_uint8(coord, sp->new_coord.x);
+					entry = strtok(NULL, ":");
+					ASSERT(entry != NULL);
+					coord = (uint16_t)atoi(entry);
+					uint16_to_uint8(coord, sp->new_coord.y);
+				}
+
+				/* parse is_exit_node */
+				entry = strtok(NULL, ":");
+				ASSERT(entry != NULL);
+				sp->is_exit_node = (int8_t)atoi(entry);
+
+				/* parse neighbors */
+				{
+					uint8_t num_neighbors = 0;
+					rimeaddr_t *neighbor = sp->neighbors;
+					while((entry = strtok(NULL, ".")) != NULL) {
+						neighbor->u8[0] = (uint8_t)atoi(entry);
+						entry = strtok(NULL, ":");
+						ASSERT(entry != NULL);
+						neighbor->u8[1] = (uint8_t)atoi(entry);
+						++neighbor;
+						++num_neighbors;
+					}
+
+					ASSERT(num_neighbors != 0);
+					sp->num_neighbors = num_neighbors;
+				}
+
+				{
+					/* send setup_packet */
+					uint8_t data_len = SETUP_PACKET_SIZE +
+						sp->num_neighbors*sizeof(rimeaddr_t);
+					LOG("Sending setup packet: new_addr: %d.%d, coord: (%d.%d,%d.%d), is_exit_node: %d, "
+							"num_neighbors: %d, neighbors: ", 
+							sp->new_addr.u8[0],
+							sp->new_addr.u8[1],
+							sp->new_coord.x[0],
+							sp->new_coord.x[1],
+							sp->new_coord.y[0],
+							sp->new_coord.y[1],
+							sp->is_exit_node,
+							sp->num_neighbors);
+					{
+						uint8_t n;
+						for(n = 0; n < sp->num_neighbors; ++n) {
+							LOG("%d.%d, ", 
+									sp->neighbors[n].u8[0],
+									sp->neighbors[n].u8[1]);
+						}
+					}
+					LOG("\n");
+
+					ec_broadcast(&g_np.c, &rimeaddr_node_addr, &rimeaddr_node_addr,
+							0, g_np.seqno++, &sp, data_len);
+				}
 			} else {
 				LOG("unkown command\n");
 			}

@@ -4,7 +4,6 @@
 #include "net/rime/rimeaddr.h"
 #include "emergency_net/coordinate.h"
 
-#include "base/log.h"
 #include "base/util.h"
 
 typedef uint16_t metric_t;
@@ -75,32 +74,16 @@ void neighbor_node_set_addr(struct neighbor_node *nn, const rimeaddr_t *addr) {
 static inline
 void neighbor_node_set_coordinate(struct neighbor_node *nn, 
 		const struct coordinate *coord) {
-	rimeaddr_t check;
-	rimeaddr_copy(&check, &nn->addr);
-
-	LOG("1\n");
-	ASSERT(rimeaddr_cmp(&check, &nn->addr));
-
 	coordinate_copy(&nn->coord, coord);
-
-	LOG("2\n");
-	ASSERT(rimeaddr_cmp(&check, &nn->addr));
-
-	//nn->distance = coordinate_distance(coord, &coordinate_node);
 	uint16_to_uint8(coordinate_distance(coord, &coordinate_node), nn->distance);
-	LOG("3\n");
-	ASSERT(rimeaddr_cmp(&check, &nn->addr));
 }
 
 static inline
 void neighbor_node_set_best_path(struct neighbor_node *nn, 
 		const struct neighbor_node_best_path *bp) {
-	LOG("Setting best path: metric: (%u,%u)\n", bp->metric[0], bp->metric[1]);
 	memcpy(&nn->bp, bp, sizeof(struct neighbor_node_best_path));
-	LOG("Best path: metric now: (%u,%u)\n", nn->bp.metric[0], nn->bp.metric[1]);
 	rimeaddr_copy(&nn->bp.points_to, &bp->points_to);
 	nn->bp.hops = bp->hops;
-	LOG("Best path: metric now2: (%u,%u)\n", nn->bp.metric[0], nn->bp.metric[1]);
 }
 
 static inline

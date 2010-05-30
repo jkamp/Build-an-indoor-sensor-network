@@ -30,7 +30,7 @@ enum {
 };
 
 static void
-print_packet_data(uint8_t *hdr, int len)
+print_packet_data(const uint8_t *hdr, int len)
 {
   int i;
 
@@ -268,19 +268,28 @@ static void send_mesh_data(void* cptr) {
 				return;
 			}
 		}
-		const struct unicast_packet *p = (struct
-				unicast_packet*)packet_buffer_get_packet(bp);
-		struct mesh_packet *pbuf = (struct mesh_packet*)
-			packetbuf_dataptr();
 
-		LOG("[MESH SEND]: ");
-		DEBUG_PACKET(p);
+		packetbuf_clear();
+		{
+			const struct unicast_packet *p = (struct
+					unicast_packet*)packet_buffer_get_packet(bp);
+			struct mesh_packet *pbuf = (struct mesh_packet*)
+				packetbuf_dataptr();
 
-		pbuf->seqno = p->hdr.seqno;
-		memcpy(pbuf->data, p->data, packet_buffer_data_len(bp));
+			LOG("[MESH SEND]: ");
+			LOG("Packet data: ");
+			print_packet_data(p->data, packet_buffer_data_len(bp));
 
-		packet_buffer_increment_times_sent(bp);
-		mesh_send(&c->meshdata_conn, &p->destination);
+			packetbuf_set_datalen(MESH_PACKET_HDR_SIZE+packet_buffer_data_len(bp));
+
+			pbuf->seqno = p->hdr.seqno;
+			memcpy(pbuf->data, p->data, packet_buffer_data_len(bp));
+
+			packet_buffer_increment_times_sent(bp);
+			if(!mesh_send(&c->meshdata_conn, &p->destination)) {
+				LOG("Could not send via mesh\n");
+			}
+		}
 	}
 }
 
@@ -457,26 +466,11 @@ void ec_reliable_broadcast_ns(struct ec *c, const rimeaddr_t *originator,
 		uint8_t data_len) {
 
 	struct broadcast_packet bp;
-	struct buffered_packet* tmp;
 
 	init_broadcast_packet(&bp, 0, hops, originator, sender, seqno);
 
-	tmp = packet_buffer_broadcast_packet(&c->sq, &bp, data, data_len, c->ns,
+	packet_buffer_broadcast_packet(&c->sq, &bp, data, data_len, c->ns,
 			MSG_TYPE_NEIGHBOR_DATA);
-
-	{
-		struct packet* p = packet_buffer_get_packet(tmp);
-		ASSERT(rimeaddr_cmp(&p->hdr.originator, originator) == 1);
-		ASSERT(rimeaddr_cmp(&p->hdr.sender, sender) == 1);
-		ASSERT(p->hdr.hops == hops);
-		ASSERT(p->hdr.seqno == seqno);
-		ASSERT(memcmp(data, p->data, data_len) == 0);
-
-		TRACE("");
-		DEBUG_PACKET(p);
-		LOG("Packet data buffered: ");
-		print_packet_data(p->data, packet_buffer_data_len(tmp));
-	}
 
 	store_packet_for_dupe_checks(c, (struct packet*)&bp);
 
@@ -513,14 +507,45 @@ void ec_mesh(struct ec *c, const rimeaddr_t *destination, uint8_t seqno,
 	init_unicast_packet(&up, 0, 0, &rimeaddr_null,
 			&rimeaddr_null, seqno, destination);
 
-	packet_buffer_unicast_packet(&c->sq, &up, NULL, 0, NULL,
+	packet_buffer_unicast_packet(&c->sq, &up, data, data_len, NULL,
 			MSG_TYPE_MESH_DATA);
 
 	if (ctimer_expired(&c->mesh_data_timer)) {
-		TRACE("Mesh data expired\n");
 		ctimer_set(&c->mesh_data_timer,
 				FAST_TRANSMIT, send_mesh_data, c);
 	}
+}
+
+static void meshdata_recv(struct mesh_conn *bc, const rimeaddr_t *from, 
+		uint8_t hops) {
+	struct ec *c = (struct ec*)((char*)bc-offsetof(struct ec, meshdata_conn));
+	const struct mesh_packet *mp = 
+		(struct mesh_packet*)packetbuf_dataptr();
+
+	uint8_t data_len = packetbuf_datalen() - MESH_PACKET_HDR_SIZE;
+	TRACE("[MESH RECV]\n");
+	print_packet_data((uint8_t*)mp, packetbuf_datalen());
+
+	c->cb->mesh(c, from, hops, mp->seqno, mp->data, data_len);
+}
+
+static void meshdata_sent(struct mesh_conn *bc) {
+	struct ec *c = (struct ec*)((char*)bc-offsetof(struct ec, meshdata_conn));
+	struct buffered_packet *bp =
+		packet_buffer_get_first_packet_from_type(&c->sq,
+				MSG_TYPE_MESH_DATA);
+	LOG("Mesh sent OK\n");
+	packet_buffer_free(&c->sq, bp);
+
+	ctimer_set(&c->mesh_data_timer,
+			FAST_TRANSMIT, send_mesh_data, c);
+}
+
+static void meshdata_timeout(struct mesh_conn *bc) {
+	struct ec *c = (struct ec*)((char*)bc-offsetof(struct ec, meshdata_conn));
+	LOG("Mesh timed-out\n");
+	ctimer_set(&c->mesh_data_timer,
+			FAST_TRANSMIT, send_mesh_data, c);
 }
 
 static void timesynch_as_leader(void *ptr) {
@@ -608,33 +633,6 @@ static void timesynch_recv(struct abc_conn *bc) {
 	}
 }
 
-static void meshdata_recv(struct mesh_conn *bc, const rimeaddr_t *from, 
-		uint8_t hops) {
-	struct ec *c = (struct ec*)((char*)bc-offsetof(struct ec, meshdata_conn));
-	const struct mesh_packet *mp = (struct mesh_packet*)packetbuf_dataptr();
-	uint8_t data_len = packetbuf_datalen() - MESH_PACKET_HDR_SIZE;
-	TRACE("recv meshdata\n");
-
-	c->cb->mesh(c, from, hops, mp->seqno, mp->data, data_len);
-}
-
-static void meshdata_sent(struct mesh_conn *bc) {
-	struct ec *c = (struct ec*)((char*)bc-offsetof(struct ec, meshdata_conn));
-	struct buffered_packet *bp =
-		packet_buffer_get_first_packet_from_type(&c->sq,
-				MSG_TYPE_MESH_DATA);
-	packet_buffer_free(&c->sq, bp);
-
-	ctimer_set(&c->mesh_data_timer,
-			FAST_TRANSMIT, send_mesh_data, c);
-}
-
-static void meshdata_timeout(struct mesh_conn *bc) {
-	struct ec *c = (struct ec*)((char*)bc-offsetof(struct ec, meshdata_conn));
-
-	ctimer_set(&c->mesh_data_timer,
-			FAST_TRANSMIT, send_mesh_data, c);
-}
 
 static const struct abc_callbacks neighbor_cb = {neighbor_recv};
 static const struct abc_callbacks timesynch_cb = {timesynch_recv};

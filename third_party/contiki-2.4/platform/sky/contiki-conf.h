@@ -30,7 +30,7 @@
 #define CXMAC_CONF_ANNOUNCEMENTS    1
 #endif /* WITH_UIP6 */
 
-#define QUEUEBUF_CONF_NUM          0
+#define QUEUEBUF_CONF_NUM          8
 
 #define PACKETBUF_CONF_ATTRS_INLINE 1
 
