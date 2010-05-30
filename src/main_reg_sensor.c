@@ -709,9 +709,7 @@ static inline
 void read_sensors(struct sensor_readings *r) {
 	SENSORS_ACTIVATE(light_sensor);
 	/* 4 times are needed to better reflect the actual value right now. */
-	r->light = light_sensor.value(LIGHT_SENSOR_PHOTOSYNTHETIC);
-	r->light = light_sensor.value(LIGHT_SENSOR_PHOTOSYNTHETIC);
-	r->light = light_sensor.value(LIGHT_SENSOR_PHOTOSYNTHETIC);
+	clock_delay(400);
 	r->light = light_sensor.value(LIGHT_SENSOR_PHOTOSYNTHETIC);
 	/*other sensors here*/
 	SENSORS_DEACTIVATE(light_sensor);
