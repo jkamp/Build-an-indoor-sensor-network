@@ -1045,14 +1045,15 @@ PROCESS_THREAD(fire_process, ev, data) {
 						if (g_np.bpn != NULL) {
 							if (!g_np.state.is_burning) {
 								LOG("Sensed emergency\n");
+								set_burning(1);
 								blinking_init();
 								add_coordinate_as_burning(&coordinate_node);
+
 
 								send_emergency_packet();
 								ec_timesynch_network(&g_np.c);
 
 								broadcast_best_path();
-								set_burning(1);
 							}
 						} else {
 							LOG("Sensed emergency, but not initialized\n");
@@ -1065,9 +1066,9 @@ PROCESS_THREAD(fire_process, ev, data) {
 						if (g_np.state.is_burning) {
 							/* we're not burning anymore */
 							LOG("Sensed ANTI emergency\n");
+							set_burning(0);
 							remove_coordinate_as_burning(&coordinate_node);
 							send_anti_emergency_packet();
-							set_burning(0);
 							blinking_update();
 						}
 
