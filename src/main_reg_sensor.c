@@ -349,38 +349,38 @@ find_best_exit_path_neighbor() {
 	metric_t metric;
 
 	LOG("-----------------------\n");
-	for(;i != NULL; i = neighbors_next(&g_np.ns)) {
-		TRACE("neighbor: %d.%d, points_to: (%d.%d), coord: (%d.%d,%d.%d), distance: %d, "
-				"hops: %d, metric: %u\n",
-				neighbor_node_addr(i)->u8[0], 
-				neighbor_node_addr(i)->u8[1],
-				i->bp.points_to.u8[0],
-				i->bp.points_to.u8[1],
-				neighbor_node_coord(i)->x[0], 
-				neighbor_node_coord(i)->x[1], 
-				neighbor_node_coord(i)->y[0],
-				neighbor_node_coord(i)->y[1],
-				neighbor_node_distance(i),
-				neighbor_node_hops(i),
-				neighbor_node_metric(i));
+	if (!g_np.state.is_exit_node) {
+		for(;i != NULL; i = neighbors_next(&g_np.ns)) {
+			TRACE("neighbor: %d.%d, points_to: (%d.%d), coord: (%d.%d,%d.%d), distance: %d, "
+					"hops: %d, metric: %u\n",
+					neighbor_node_addr(i)->u8[0], 
+					neighbor_node_addr(i)->u8[1],
+					i->bp.points_to.u8[0],
+					i->bp.points_to.u8[1],
+					neighbor_node_coord(i)->x[0], 
+					neighbor_node_coord(i)->x[1], 
+					neighbor_node_coord(i)->y[0],
+					neighbor_node_coord(i)->y[1],
+					neighbor_node_distance(i),
+					neighbor_node_hops(i),
+					neighbor_node_metric(i));
 
-		if(!neighbor_node_points_to_us(i)) { 
-			metric = weigh_distance( neighbor_node_distance(i) ) +
-				neighbor_node_metric(i);
-			if (metric < min_metric) {
-				min_metric = metric;
-				best = i;
+			if(!neighbor_node_points_to_us(i)) { 
+				metric = weigh_distance( neighbor_node_distance(i) ) +
+					neighbor_node_metric(i);
+				if (metric < min_metric) {
+					min_metric = metric;
+					best = i;
+				}
 			}
 		}
-	}
-
-	if (g_np.state.is_exit_node) {
+	} else {
 		/* extra checks for exit nodes */
-		uint16_t metric16;
-		uint8_to_uint16(g_np.current_sensors_metric, &metric16);
-		if (metric16 < min_metric) {
+	//	uint16_t metric16;
+	//	uint8_to_uint16(g_np.current_sensors_metric, &metric16);
+	//	if (metric16 < min_metric) {
 			best = &exit_node;
-		}
+		//}
 	}
 
 	ASSERT(best != NULL);
