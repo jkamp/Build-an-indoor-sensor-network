@@ -332,7 +332,11 @@ void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 static inline metric_t
 weigh_metrics(distance_t distance) {
 	metric_t metric16;
-	uint8_to_uint16(g_np.current_sensors_metric, &metric16);
+	if (!g_np.state.is_burning) {
+		uint8_to_uint16(g_np.current_sensors_metric, &metric16);
+	} else {
+		uint8_to_uint16(10*g_np.current_sensors_metric, &metric16);
+	}
 	return 100*distance + metric16;
 }
 
@@ -776,7 +780,7 @@ void read_sensors(struct sensor_readings *r) {
 	r->light = light_sensor.value(LIGHT_SENSOR_PHOTOSYNTHETIC);
 	/*other sensors here*/
 	SENSORS_DEACTIVATE(light_sensor);
-	LOG("SENSORS: Light: %d\n", r->light);
+	//LOG("SENSORS: Light: %d\n", r->light);
 }
 
 static inline
@@ -920,6 +924,14 @@ PROCESS_THREAD(fire_process, ev, data) {
 		//		broadcast_best_path();
 
 			/** GUI STUFF **/
+			} else if(strcmp(data, "id") == 0) {
+				LOG("Id: %d.%d, Coord: (%d.%d, %d.%d), is_exit_node: %d\n", rimeaddr_node_addr.u8[0],
+						rimeaddr_node_addr.u8[1], 
+						coordinate_node.x[0], 
+						coordinate_node.x[1], 
+						coordinate_node.y[0], 
+						coordinate_node.y[1],
+						g_np.state.is_exit_node);
 			} else if(strcmp(data, "sink") == 0) {
 				g_np.state.is_sink_node = 1;
 			} else if(strcmp(data, "extract_report_packet") == 0) {
