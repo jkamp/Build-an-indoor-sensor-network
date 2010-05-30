@@ -212,7 +212,8 @@ blinking_init() {
 static void
 set_burning(int8_t on) {
 	g_np.state.is_burning = on;
-	leds_blue(1);
+	leds_red(1);
+	leds_blue(0);
 }
 
 void setup_parse(const struct setup_packet *sp, int is_from_flash) {
@@ -226,6 +227,9 @@ void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 	coordinate_set_node_coord(&sp->new_coord);
 
 	neighbors_clear(&g_np.ns);
+	memset(&g_np.state, 0, sizeof(g_np.state));
+
+	uint16_to_uint8(0, g_np.current_sensors_metric);
 
 	for(; i < sp->num_neighbors; ++i) {
 		neighbors_add(&g_np.ns, addr++);
@@ -459,16 +463,20 @@ static void reset_system_packet_handler() {
 
 	g_np.bpn = NULL;
 	g_np.state.is_blinking = 0;
+	g_np.state.is_burning = 0;
 	g_np.state.has_sensed_emergency = 0;
+	g_np.state.is_awaiting_setup_packet = 0;
 	/*g_np.state.is_exit_node = 0;*/
 	g_np.state.has_sent_node_info = 0;
+	g_np.state.is_reset_mode = 1;
+	g_np.state.is_sink_node = 0;
+
 
 	queue_buffer_clear(&g_np.emergency_coords);
 	uint16_to_uint8(0, g_np.current_sensors_metric);
 
 	ec_timesynch_off(&g_np.c);
 
-	g_np.state.is_reset_mode = 1;
 }
 
 /* Received packets from everyone (whose packets are sent with
@@ -700,7 +708,9 @@ static void ec_mesh_recv(struct ec *c, const rimeaddr_t *originator,
 static inline
 void read_sensors(struct sensor_readings *r) {
 	SENSORS_ACTIVATE(light_sensor);
-	/* Two times are needed to better reflect the actual value right now. */
+	/* 4 times are needed to better reflect the actual value right now. */
+	r->light = light_sensor.value(LIGHT_SENSOR_PHOTOSYNTHETIC);
+	r->light = light_sensor.value(LIGHT_SENSOR_PHOTOSYNTHETIC);
 	r->light = light_sensor.value(LIGHT_SENSOR_PHOTOSYNTHETIC);
 	r->light = light_sensor.value(LIGHT_SENSOR_PHOTOSYNTHETIC);
 	/*other sensors here*/
@@ -762,14 +772,14 @@ PROCESS_THREAD(fire_process, ev, data) {
 			sizeof(struct coordinate), MAX_FIRE_COORDINATES);
 	ec_open(&g_np.c, EMERGENCYNET_CHANNEL, &ec_cb);
 	{
-#ifndef EMERGENCY_COOJA_SIMULATION
+//#ifndef EMERGENCY_COOJA_SIMULATION
 		char buf[SETUP_PACKET_SIZE+MAX_NEIGHBORS*sizeof(rimeaddr_t)] = {0};
 		struct setup_packet *sp = (struct setup_packet*)buf;
 		if (node_properties_restore(buf, sizeof(buf))) {
 			LOG("Found info on flash\n");
 			setup_parse(sp, 1);
 		}
-#endif
+//#endif
 	}
 
 	SENSORS_ACTIVATE(button_sensor);
@@ -789,7 +799,6 @@ PROCESS_THREAD(fire_process, ev, data) {
 #elif EMERGENCY_COOJA_SIMULATION == 2
 #include "cooja_simulation2.impl"
 #endif
-#ifdef EMERGENCY_COOJA_SIMULATION
 			} else if(strcmp(data, "init") == 0) {
 				rimeaddr_t addr = { {0xFE, 0xFE} };
 				struct sensor_packet sp = {INITIALIZE_BEST_PATHS_PACKET};
@@ -951,50 +960,57 @@ PROCESS_THREAD(fire_process, ev, data) {
 			} else {
 				LOG("unkown command\n");
 			}
-#else
 		} else if(etimer_expired(&emergency_check_timer)) {
-			if(!g_np.state.has_sensed_emergency) {
-				if (emergency_poll()) {
-					/* we sensed emergency! */
-					struct emergency_packet ep;
-					struct sensor_readings r;
-					LOG("SENSED EMERGENCY\n");
+			if(!g_np.state.is_awaiting_setup_packet) {
+				if(!g_np.state.has_sensed_emergency) {
+					if (emergency_poll()) {
+						/* we sensed emergency! */
+						if (g_np.bpn != NULL) {
+							struct emergency_packet ep;
+							struct sensor_readings r;
+							LOG("SENSED EMERGENCY\n");
 
-					blinking_init();
+							blinking_init();
 
-					read_sensors(&r);
-					g_np.current_sensors_metric = sensor_readings_to_metric(&r);
+							read_sensors(&r);
+							uint16_to_uint8(sensor_readings_to_metric(&r),
+									g_np.current_sensors_metric);
 
-					ep.type = EMERGENCY_PACKET;
-					ep.source = coordinate_node;
+							ep.type = EMERGENCY_PACKET;
+							coordinate_copy(&ep.source, &coordinate_node);
 
-					queue_buffer_push_front(&g_np.emergency_coords, &coordinate_node);
+							queue_buffer_push_front(&g_np.emergency_coords, &coordinate_node);
 
-					ec_broadcast(&g_np.c, &rimeaddr_node_addr,
-							&rimeaddr_node_addr, 0, g_np.seqno++, &ep,
-							sizeof(struct emergency_packet));
+							ec_broadcast(&g_np.c, &rimeaddr_node_addr,
+									&rimeaddr_node_addr, 0, g_np.seqno++, &ep,
+									sizeof(struct emergency_packet));
 
-					broadcast_best_path();
+							broadcast_best_path();
 
-					/* Leader node should synchronize every 30 sec. New leader
-					 * should be elected if we hit timeout of 60 sec. */
-					ec_timesynch_network(&g_np.c);
+							/* Leader node should synchronize every 30 sec. New leader
+							 * should be elected if we hit timeout of 60 sec. */
+							ec_timesynch_network(&g_np.c);
 
-					g_np.state.has_sensed_emergency = 1;
-				}
-			} else {
-				static metric_t current_metric;
-				if (abrupt_metric_change_poll(&current_metric)) {
-					g_np.current_sensors_metric = current_metric;
-					broadcast_best_path();
-					if(emergency_poll()) {
-						leds_red(1);
-					} else {
-						leds_red(0);
+							g_np.state.has_sensed_emergency = 1;
+							set_burning(1);
+						} else {
+							LOG("Sensed emergency, but not initialized\n");
+						}
+					}
+				} else {
+					metric_t current_metric;
+					if (abrupt_metric_change_poll(&current_metric)) {
+						LOG("Abrupt metric change\n");
+						uint16_to_uint8(current_metric, g_np.current_sensors_metric);
+						broadcast_best_path();
+						if(emergency_poll()) {
+							set_burning(1);
+						} else {
+							set_burning(0);
+						}
 					}
 				}
 			}
-#endif
 		}
 	}
 

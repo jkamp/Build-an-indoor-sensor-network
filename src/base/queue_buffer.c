@@ -63,13 +63,8 @@ void queue_buffer_init(struct queue_buffer *qb, uint8_t buffer_size, uint8_t
 	qb->buffer_begin = buffer_begin;
 
 	qb->unused_head = NULL;
-	//LOG("Buffer begin: %x\n", qb->buffer_begin);
 	for(i = 0; i < qb->queue_max_size; ++i) {
 		b = ITEM(qb, i);
-		//LOG("b: %x\n", b);
-		ASSERT((char*)b >= (char*)buffer_begin && (char*)b <=
-				((char*)buffer_begin+(buffer_size+QUEUE_BUFFER_S_HDR_SIZE)*
-				 num_items));
 		add_tail(&qb->unused_head, b);
 	}
 	qb->used_head = NULL;
@@ -201,7 +196,15 @@ void* queue_buffer_find(struct queue_buffer* qb, const void *item,
 void queue_buffer_clear(struct queue_buffer *qb) {
 	qb->queue_size = 0;
 	if (qb->used_head != NULL) {
-		add_tail(&qb->unused_head, qb->used_head);
+		struct queue_buffer_s *s = qb->unused_head;
+		if(s != NULL) {
+			for (; s->next != NULL; s = s->next);
+
+			s->next = qb->used_head;
+		} else {
+			qb->unused_head = qb->used_head;
+		}
+
 		qb->used_head = NULL;
 	}
 	qb->iterator = NULL;

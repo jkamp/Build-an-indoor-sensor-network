@@ -56,4 +56,5 @@ neighbors_find_neighbor_node(struct neighbors *ns, const rimeaddr_t *addr) {
 
 void neighbors_clear(struct neighbors *ns) {
 	queue_buffer_clear(&ns->nbuf);
+	ASSERT(queue_buffer_begin(&ns->nbuf) == NULL);
 }
