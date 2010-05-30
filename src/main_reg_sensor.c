@@ -22,7 +22,7 @@
 #include "base/log.h"
 
 /* 0 means no simulation */
-#define EMERGENCY_COOJA_SIMULATION 1
+#define EMERGENCY_COOJA_SIMULATION 2
 
 #define EMERGENCYNET_CHANNEL 128
 #define BLINKING_SEQUENCE_LENGTH 8
@@ -333,12 +333,12 @@ static inline metric_t
 weigh_metrics(distance_t distance) {
 	metric_t metric16;
 	uint8_to_uint16(g_np.current_sensors_metric, &metric16);
-	return 10*distance + metric16;
+	return 100*distance + metric16;
 }
 
 static inline metric_t 
 weigh_distance(distance_t distance) {
-	return 10*distance;
+	return 100*distance;
 }
 
 static const struct neighbor_node*
@@ -816,7 +816,7 @@ int abrupt_metric_change_poll(metric_t *metric) {
 	*metric = sensor_readings_to_metric(&r);
 	uint8_to_uint16(g_np.current_sensors_metric, &csm);
 
-	if(abs(*metric - csm) > ABRUPT_METRIC_CHANGE_THRESHOLD) {
+	if(abs(((int16_t)*metric) - ((int16_t)csm)) > ABRUPT_METRIC_CHANGE_THRESHOLD) {
 		return 1;
 	}
 
@@ -1053,8 +1053,8 @@ PROCESS_THREAD(fire_process, ev, data) {
 						if (g_np.state.is_burning) {
 							/* we're not burning anymore */
 							LOG("Sensed ANTI emergency\n");
-							send_anti_emergency_packet();
 							remove_coordinate_as_burning(&coordinate_node);
+							send_anti_emergency_packet();
 							set_burning(0);
 							blinking_update();
 						}
