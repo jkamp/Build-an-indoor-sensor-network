@@ -101,6 +101,7 @@ struct node_info_packet {
 struct node_report_packet {
 	uint8_t type;
 	struct coordinate coord;
+	int8_t has_sensed_emergency;
 	int8_t is_exit_node;
 };
 
@@ -522,6 +523,7 @@ static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator,
 				LOG("RECV EXTRACT_REPORT_PACKET\n");
 				nrp.type = NODE_REPORT_PACKET;
 				coordinate_copy(&nrp.coord, &coordinate_node);
+				nrp.has_sensed_emergency = g_np.state.has_sensed_emergency;
 				nrp.is_exit_node = g_np.state.is_exit_node;
 
 				ec_broadcast(&g_np.c, originator, &rimeaddr_node_addr,
@@ -670,12 +672,14 @@ static void ec_mesh_recv(struct ec *c, const rimeaddr_t *originator,
 				LOG("RECV NODE_REPORT_PACKET\n");
 
 				/* GUI SHOULD PARSE THIS. */
-				printf("@NODE_REPORT_PACKET:%d.%d:%d.%d:%d\n",
+				printf("@NODE_REPORT_PACKET:%d.%d:%d.%d:%d:%d\n",
 						originator->u8[0],
 						originator->u8[1],
 						x,
 						y,
-						nrp->is_exit_node);
+						nrp->has_sensed_emergency,
+						nrp->is_exit_node
+						);
 			}
 			break;
 		default:
