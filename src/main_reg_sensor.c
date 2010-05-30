@@ -26,7 +26,7 @@
 
 #define EMERGENCYNET_CHANNEL 128
 #define BLINKING_SEQUENCE_LENGTH 8
-#define BLINKING_SEQUENCE_SWITCH_TIME (2*1024)
+#define BLINKING_SEQUENCE_SWITCH_TIME (4*1024)
 #define MAX_FIRE_COORDINATES 10
 
 #define LIGHT_EMERGENCY_THRESHOLD 300
@@ -132,6 +132,7 @@ struct node_properties {
 
 	struct {
 		int8_t is_blinking;
+		int8_t is_burning;
 		int8_t has_sensed_emergency;
 		int8_t is_exit_node;
 		int8_t is_awaiting_setup_packet;
@@ -159,7 +160,7 @@ static struct neighbor_node exit_node;
 
 static void 
 blink(struct rtimer *rt, void *ptr) {
-	if (g_np.state.is_blinking) {
+	if (g_np.state.is_blinking && !g_np.state.is_burning) {
 		switch(g_np.blinking.state) {
 			case ON:
 				leds_blue(1);
@@ -183,7 +184,7 @@ blink(struct rtimer *rt, void *ptr) {
 
 static void
 blinking_update() {
-	if (g_np.state.is_blinking) {
+	if (g_np.state.is_blinking && !g_np.state.is_burning) {
 		uint16_t blinking_sequences_next = (timesynch_time() /
 				BLINKING_SEQUENCE_SWITCH_TIME)+1;
 		g_np.blinking.next_wakeup =
@@ -205,13 +206,20 @@ blinking_init() {
 	if (!g_np.state.is_blinking) {
 		g_np.state.is_blinking = 1;
 		blinking_update();
-		/*leds_blue(1);*/
 	}
+}
+
+static void
+set_burning(int8_t on) {
+	g_np.state.is_burning = on;
+	leds_blue(1);
 }
 
 void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 	int i = 0;
 	const rimeaddr_t *addr = sp->neighbors;
+
+	leds_off(LEDS_ALL);
 
 	rimeaddr_set_node_addr((rimeaddr_t*)&sp->new_addr);
 
@@ -266,14 +274,14 @@ void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 		}
 	}
 
-#ifndef EMERGENCY_COOJA_SIMULATION
+//#ifndef EMERGENCY_COOJA_SIMULATION
 	if(!is_from_flash) {
 		LOG("Burning info to flash\n");
 		node_properties_burn(sp, SETUP_PACKET_SIZE + 
 				sp->num_neighbors * sizeof(rimeaddr_t));
 		LOG("Burning info to flash OK\n");
 	}
-#endif
+//#endif
 }
 
 static inline metric_t
@@ -821,12 +829,12 @@ PROCESS_THREAD(fire_process, ev, data) {
 				 * should be elected if we hit timeout of 60 sec. */
 				ec_timesynch_network(&g_np.c);
 
-				leds_red(1);
+				set_burning(1);
 				g_np.state.has_sensed_emergency = 1;
 			} else if(strcmp(data, "inc") == 0) {
 				uint16_t now;
 				uint8_to_uint16(g_np.current_sensors_metric, &now);
-				uint16_to_uint8(now+10, g_np.current_sensors_metric);
+				uint16_to_uint8(now+100, g_np.current_sensors_metric);
 				LOG("Current sensor metric: (%d.%d)\n",
 						g_np.current_sensors_metric[0],
 						g_np.current_sensors_metric[1]);
@@ -834,7 +842,7 @@ PROCESS_THREAD(fire_process, ev, data) {
 			} else if(strcmp(data, "dec") == 0) {
 				uint16_t now;
 				uint8_to_uint16(g_np.current_sensors_metric, &now);
-				uint16_to_uint8(now-10, g_np.current_sensors_metric);
+				uint16_to_uint8(now-100, g_np.current_sensors_metric);
 				LOG("Current sensor metric: (%d.%d)\n",
 						g_np.current_sensors_metric[0],
 						g_np.current_sensors_metric[1]);
