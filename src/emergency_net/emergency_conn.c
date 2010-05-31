@@ -17,6 +17,7 @@
 #define FAST_TRANSMIT_ACK (random_rand()%CLOCK_SECOND)
 
 #define RETRANSMIT_NEIGHBOR_DATA (6*CLOCK_SECOND)
+#define RETRANSMIT_MESH_DATA (5*CLOCK_SECOND)
 
 #define TIMESYNCH_LEADER_UPDATE (30*CLOCK_SECOND)
 #define TIMESYNCH_LEADER_TIMEOUT (60*CLOCK_SECOND)
@@ -287,7 +288,8 @@ static void send_mesh_data(void* cptr) {
 
 			packet_buffer_increment_times_sent(bp);
 			if(!mesh_send(&c->meshdata_conn, &p->destination)) {
-				LOG("Could not send via mesh\n");
+				ctimer_set(&c->mesh_data_timer,
+						RETRANSMIT_MESH_DATA, send_mesh_data, c);
 			}
 		}
 	}
