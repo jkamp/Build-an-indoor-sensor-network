@@ -69,7 +69,6 @@ void queue_buffer_init(struct queue_buffer *qb, uint8_t buffer_size, uint8_t
 	}
 	qb->used_head = NULL;
 	qb->iterator = NULL;
-	ASSERT(qb->unused_head != NULL);
 }
 
 void* queue_buffer_alloc_back(struct queue_buffer* qb) {

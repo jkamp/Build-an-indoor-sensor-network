@@ -489,8 +489,10 @@ void ec_broadcast(struct ec *c, const rimeaddr_t *originator,
 
 	init_broadcast_packet(&bp, 0, hops, originator, sender, seqno);
 
+	LOG("1\n");
 	packet_buffer_broadcast_packet(&c->sq, &bp, data, data_len, c->ns,
 			MSG_TYPE_BROADCAST_DATA);
+	LOG("2\n");
 
 	store_packet_for_dupe_checks(c, (struct packet*)&bp);
 

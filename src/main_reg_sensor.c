@@ -960,6 +960,10 @@ PROCESS_THREAD(fire_process, ev, data) {
 						coordinate_node.y[1],
 						g_np.state.is_exit_node);
 			} else if(strcmp(data, "sink") == 0) {
+				uint8_t tmp[SETUP_PACKET_SIZE+1*sizeof(rimeaddr_t)] = {0};
+				struct setup_packet *sp = (struct setup_packet*)tmp;
+				sp->type = SETUP_PACKET;
+				setup_parse(sp,0);
 				g_np.state.is_sink_node = 1;
 			} else if(strcmp(data, "extract_report_packet") == 0) {
 				struct sensor_packet p;
