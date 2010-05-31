@@ -202,22 +202,24 @@ send_anti_emergency_packet() {
 static void 
 blink(struct rtimer *rt, void *ptr) {
 	if (g_np.state.is_blinking && !g_np.state.is_burning) {
-		switch(g_np.blinking.state) {
-			case ON:
-				ASSERT(g_np.bpn != NULL);
-				if (neighbor_node_metric(g_np.bpn) < MAX_ALLOWED_METRIC) {
+		ASSERT(g_np.bpn != NULL);
+		if (neighbor_node_metric(g_np.bpn) < MAX_ALLOWED_METRIC) {
+			switch(g_np.blinking.state) {
+				case ON:
 					leds_blue(1);
 					break;
-				}
-			case OFF_1:
-			case OFF_2:
-			case OFF_3:
-			case OFF_4:
-			case OFF_5:
-			case OFF_6:
-			case OFF_7:
-				leds_blue(0);
-				break;
+				case OFF_1:
+				case OFF_2:
+				case OFF_3:
+				case OFF_4:
+				case OFF_5:
+				case OFF_6:
+				case OFF_7:
+					leds_blue(0);
+					break;
+			}
+		} else {
+			leds_blue(1);
 		}
 
 		g_np.blinking.next_wakeup += BLINKING_SEQUENCE_SWITCH_TIME;
@@ -548,11 +550,11 @@ static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator,
 		}
 	}
 
-	switch(p->type) {
-		case EMERGENCY_PACKET:
-			{
-				struct emergency_packet *ep = (struct emergency_packet*)p;
-				if(!g_np.state.is_sink_node) {
+	if (!g_np.state.is_sink_node) {
+		switch(p->type) {
+			case EMERGENCY_PACKET:
+				{
+					struct emergency_packet *ep = (struct emergency_packet*)p;
 					LOG("RECV EMERGENCY_PACKET: coord: [%d%d],[%d%d]\n",
 							ep->source.x[0], ep->source.x[1], ep->source.y[0], ep->source.y[1]);
 					add_coordinate_as_burning(&ep->source);
@@ -562,79 +564,91 @@ static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator,
 							hops+1, seqno, data, data_len);
 
 					blinking_init();
-				} else {
-					/* is sink */
-					//uint16_t x;
-					//uint16_t y;
-					//uint8_to_uint16(ep->source.x, &x);
-					//uint8_to_uint16(ep->source.y, &y);
-					//printf("@EMERGENCY_PACKET:%d.%d\n", x,y);
-					printf("@EMERGENCY_PACKET:%d.%d\n", 
-							originator->u8[0],
-							originator->u8[1]);
 				}
-			}
-			break;
-		case ANTI_EMERGENCY_PACKET:
-			{
-				struct emergency_packet *ep = (struct emergency_packet*)p;
-				if(!g_np.state.is_sink_node) {
+				break;
+			case ANTI_EMERGENCY_PACKET:
+				{
+					struct emergency_packet *ep = (struct emergency_packet*)p;
 					remove_coordinate_as_burning(&ep->source);
 
 					LOG("RECV ANTI EMERGENCY_PACKET: coord: [%d%d],[%d%d]\n",
 							ep->source.x[0], ep->source.x[1], ep->source.y[0], ep->source.y[1]);
 					ec_broadcast(&g_np.c, originator, &rimeaddr_node_addr,
 							hops+1, seqno, data, data_len);
-				} else {
-					/* is sink */
+				}
+				break;
+			case SETUP_PACKET:
+				LOG("RECV SETUP_PACKET\n");
+				if (g_np.state.is_awaiting_setup_packet) {
+					g_np.state.is_awaiting_setup_packet = 0;
+					setup_parse((const struct setup_packet*)p, 0);
+					leds_blink();
+				}
+				break;
+			case INITIALIZE_BEST_PATHS_PACKET:
+				LOG("RECV INITIALIZE_BEST_PATHS_PACKET\n");
+				ec_reliable_broadcast_ns(&g_np.c,
+						originator, &rimeaddr_node_addr, hops+1,
+						seqno, data, data_len);
+
+				initialize_best_path_packet_handler();
+				break;
+			case EXTRACT_REPORT_PACKET:
+				{
+					struct node_report_packet nrp;
+					LOG("RECV EXTRACT_REPORT_PACKET\n");
+					nrp.type = NODE_REPORT_PACKET;
+					coordinate_copy(&nrp.coord, &coordinate_node);
+					nrp.is_burning = g_np.state.is_burning;
+					nrp.is_exit_node = g_np.state.is_exit_node;
+
+					ec_broadcast(&g_np.c, originator, &rimeaddr_node_addr,
+							hops+1, seqno, data, data_len);
+
+					ec_mesh(&g_np.c, originator, g_np.seqno++, &nrp, sizeof(struct
+								node_report_packet));
+				}
+				break;
+			case RESET_SYSTEM_PACKET:
+				LOG("RECV RESET_SYSTEM_PACKET\n");
+				ec_reliable_broadcast_ns(&g_np.c,
+						originator, &rimeaddr_node_addr, hops+1,
+						seqno, data, data_len);
+				reset_system_packet_handler();
+				break;
+			default:
+				LOG("Unknown application packet type\n");
+				ASSERT(0);
+		}
+	} else {
+		switch(p->type) {
+			case EMERGENCY_PACKET:
+				{
+					//struct emergency_packet *ep = (struct emergency_packet*)p;
+					printf("@EMERGENCY_PACKET:%d.%d\n", 
+							originator->u8[0],
+							originator->u8[1]);
+				}
+				break;
+			case ANTI_EMERGENCY_PACKET:
+				{
 					printf("@ANTI_EMERGENCY_PACKET:%d.%d\n", 
 							originator->u8[0],
 							originator->u8[1]);
 				}
-			}
-			break;
-		case SETUP_PACKET:
-			LOG("RECV SETUP_PACKET\n");
-			if (g_np.state.is_awaiting_setup_packet) {
-				g_np.state.is_awaiting_setup_packet = 0;
-				setup_parse((const struct setup_packet*)p, 0);
-				leds_blink();
-			}
-			break;
-		case INITIALIZE_BEST_PATHS_PACKET:
-			LOG("RECV INITIALIZE_BEST_PATHS_PACKET\n");
-			ec_reliable_broadcast_ns(&g_np.c,
-					originator, &rimeaddr_node_addr, hops+1,
-					seqno, data, data_len);
-
-			initialize_best_path_packet_handler();
-			break;
-		case EXTRACT_REPORT_PACKET:
-			{
-				struct node_report_packet nrp;
-				LOG("RECV EXTRACT_REPORT_PACKET\n");
-				nrp.type = NODE_REPORT_PACKET;
-				coordinate_copy(&nrp.coord, &coordinate_node);
-				nrp.is_burning = g_np.state.is_burning;
-				nrp.is_exit_node = g_np.state.is_exit_node;
-
-				ec_broadcast(&g_np.c, originator, &rimeaddr_node_addr,
-						hops+1, seqno, data, data_len);
-
-				ec_mesh(&g_np.c, originator, g_np.seqno++, &nrp, sizeof(struct
-							node_report_packet));
-			}
-			break;
-		case RESET_SYSTEM_PACKET:
-			LOG("RECV RESET_SYSTEM_PACKET\n");
-			ec_reliable_broadcast_ns(&g_np.c,
-					originator, &rimeaddr_node_addr, hops+1,
-					seqno, data, data_len);
-			reset_system_packet_handler();
-			break;
-		default:
-			LOG("Unknown application packet type\n");
-			ASSERT(0);
+				break;
+			case SETUP_PACKET:
+				break;
+			case INITIALIZE_BEST_PATHS_PACKET:
+				break;
+			case EXTRACT_REPORT_PACKET:
+				break;
+			case RESET_SYSTEM_PACKET:
+				break;
+			default:
+				LOG("Unknown application packet type\n");
+				ASSERT(0);
+		}
 	}
 }
 
@@ -661,6 +675,10 @@ static void ec_neighbors_recv(struct ec *c, const rimeaddr_t *originator,
 		if(p->type != INITIALIZE_BEST_PATHS_PACKET) {
 			return;
 		}
+	}
+
+	if (g_np.state.is_sink_node) {
+		return;
 	}
 
 	switch(p->type) {
