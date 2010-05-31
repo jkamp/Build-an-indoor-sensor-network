@@ -29,6 +29,7 @@
 #define BLINKING_SEQUENCE_SWITCH_TIME (4*1024)
 #define MAX_FIRE_COORDINATES 10
 
+#define MAX_ALLOWED_METRIC 1000
 #define LIGHT_EMERGENCY_THRESHOLD 400
 #define ABRUPT_METRIC_CHANGE_THRESHOLD 200
 
@@ -203,8 +204,11 @@ blink(struct rtimer *rt, void *ptr) {
 	if (g_np.state.is_blinking && !g_np.state.is_burning) {
 		switch(g_np.blinking.state) {
 			case ON:
-				leds_blue(1);
-				break;
+				ASSERT(g_np.bpn != NULL);
+				if (neighbor_node_metric(g_np.bpn) < MAX_ALLOWED_METRIC) {
+					leds_blue(1);
+					break;
+				}
 			case OFF_1:
 			case OFF_2:
 			case OFF_3:
@@ -215,6 +219,7 @@ blink(struct rtimer *rt, void *ptr) {
 				leds_blue(0);
 				break;
 		}
+
 		g_np.blinking.next_wakeup += BLINKING_SEQUENCE_SWITCH_TIME;
 		rtimer_set(&g_np.blinking.rt, g_np.blinking.next_wakeup, 0, blink, NULL);
 
@@ -559,11 +564,14 @@ static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator,
 					blinking_init();
 				} else {
 					/* is sink */
-					uint16_t x;
-					uint16_t y;
-					uint8_to_uint16(ep->source.x, &x);
-					uint8_to_uint16(ep->source.y, &y);
-					printf("@EMERGENCY_PACKET:%d.%d\n", x,y);
+					//uint16_t x;
+					//uint16_t y;
+					//uint8_to_uint16(ep->source.x, &x);
+					//uint8_to_uint16(ep->source.y, &y);
+					//printf("@EMERGENCY_PACKET:%d.%d\n", x,y);
+					printf("@EMERGENCY_PACKET:%d.%d\n", 
+							originator->u8[0],
+							originator->u8[1]);
 				}
 			}
 			break;
