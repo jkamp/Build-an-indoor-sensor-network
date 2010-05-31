@@ -50,7 +50,7 @@ packet_buffer_packet(struct packet_buffer *pb, const struct packet *p,
 
 	if (s != NULL) {
 		if (ns != NULL) {
-			QUEUE_BUFFER_INIT_WITH_STRUCT(s, unacked_ns, sizeof(rimeaddr_t*), neighbors_size(ns));
+			QUEUE_BUFFER_INIT_WITH_STRUCT(s, unacked_ns, sizeof(rimeaddr_t), neighbors_size(ns));
 			copy_neighbors(s, ns);
 		}
 		s->times_sent = 0;
@@ -74,7 +74,7 @@ packet_buffer_broadcast_packet(struct packet_buffer *pb,
 	if (s != NULL) {
 		struct broadcast_packet *tmp = (struct broadcast_packet*)&s->p;
 		if (ns != NULL) {
-			QUEUE_BUFFER_INIT_WITH_STRUCT(s, unacked_ns, sizeof(rimeaddr_t*), neighbors_size(ns));
+			QUEUE_BUFFER_INIT_WITH_STRUCT(s, unacked_ns, sizeof(rimeaddr_t), neighbors_size(ns));
 			copy_neighbors(s, ns);
 		}
 		s->times_sent = 0;
@@ -98,7 +98,7 @@ packet_buffer_unicast_packet(struct packet_buffer *pb,
 	if (s != NULL) {
 		struct unicast_packet *tmp = (struct unicast_packet*)&s->p;
 		if (ns != NULL) {
-			QUEUE_BUFFER_INIT_WITH_STRUCT(s, unacked_ns, sizeof(rimeaddr_t*), neighbors_size(ns));
+			QUEUE_BUFFER_INIT_WITH_STRUCT(s, unacked_ns, sizeof(rimeaddr_t), neighbors_size(ns));
 			copy_neighbors(s, ns);
 		}
 		s->times_sent = 0;

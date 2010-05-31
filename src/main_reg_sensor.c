@@ -29,9 +29,23 @@
 #define BLINKING_SEQUENCE_SWITCH_TIME (4*1024)
 #define MAX_FIRE_COORDINATES 10
 
+#define MAX_NUMBER_OF_HOPS_TO_EXIT 10
+
 #define MAX_ALLOWED_METRIC 1000
 #define LIGHT_EMERGENCY_THRESHOLD 400
 #define ABRUPT_METRIC_CHANGE_THRESHOLD 200
+
+static void
+print_packet_data(const uint8_t *hdr, int len)
+{
+  int i;
+
+  for(i = 0; i < len; ++i) {
+    LOG(" (0x%0x), ", hdr[i]);
+  }
+
+  LOG("\n");
+}
 
 
 /****** PACKET TYPES ******/
@@ -54,6 +68,8 @@ enum {
 	/* This is sent to tell the sensors to begin exchanging information about
 	 * nearest paths, coordinates etc. See NODE_INFO_PACKET. */
 	INITIALIZE_BEST_PATHS_PACKET,
+
+	IM_YOUR_NEW_NEIGHBOR,
 
 	/* Sent when INITIALIZE_BEST_PATHS_PACKET is sent for exit nodes and sent
 	 * when regular nodes get NODE_INFO_PACKET from other nodes (not only exit
@@ -156,6 +172,7 @@ static struct node_properties g_np;
  * ourselves to g_np.ns list but that would screw up the emergency_conn, trying
  * to send to ourselves is not such a good idea.*/
 static struct neighbor_node exit_node;
+static struct neighbor_node max_node;
 
 /* FUNCTIONS */
 
@@ -297,6 +314,10 @@ void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 		leds_green(1);
 	}
 
+	neighbor_node_set_addr(&max_node, &rimeaddr_null);
+	neighbor_node_set_coordinate(&exit_node, &coordinate_node);
+	neighbor_node_set_best_path(&max_node, &neighbor_node_best_path_max);
+
 	LOG("Id: %d.%d, Coord: (%d.%d, %d.%d), is_exit_node: %d\n", rimeaddr_node_addr.u8[0],
 			rimeaddr_node_addr.u8[1], 
 			coordinate_node.x[0], 
@@ -343,10 +364,14 @@ weigh_distance(distance_t distance) {
 
 static inline metric_t
 weigh_metrics(distance_t distance) {
-	metric_t sens_16;
-	uint8_to_uint16(g_np.current_sensors_metric, &sens_16);
 	if (g_np.state.is_burning) {
-		return 1000+weigh_distance(distance)+sens_16;
+		//if (!g_np.state.is_exit_node) {
+			metric_t sens_16;
+			uint8_to_uint16(g_np.current_sensors_metric, &sens_16);
+			return 1000+weigh_distance(distance)+sens_16;
+		//} else {
+			//return METRIC_T_MAX;
+		//}
 	}
 
 	return weigh_distance(distance);
@@ -377,7 +402,9 @@ find_best_exit_path_neighbor() {
 					neighbor_node_hops(i),
 					neighbor_node_metric(i));
 
-			if(!neighbor_node_points_to_us(i)) { 
+			if(!neighbor_node_points_to_us(i) && 
+					neighbor_node_metric(i) != METRIC_T_MAX
+					&& neighbor_node_hops(i) < MAX_NUMBER_OF_HOPS_TO_EXIT) { 
 				metric = weigh_distance( neighbor_node_distance(i) ) +
 					neighbor_node_metric(i);
 				if (metric < min_metric) {
@@ -395,7 +422,11 @@ find_best_exit_path_neighbor() {
 		//}
 	}
 
-	ASSERT(best != NULL);
+	if (best == NULL) {
+		best = &max_node;
+	}
+
+
 	TRACE("BEST neighbor: %d.%d, points_to_us: %d, coord: (%d.%d,%d.%d), distance: %d, "
 			"metric: %d\n",
 			neighbor_node_addr(best)->u8[0], neighbor_node_addr(best)->u8[1],
@@ -454,7 +485,7 @@ update_bpn_and_broadcast_new_path_if_changed(const struct neighbor_node *sender)
 		g_np.bpn = best;
 		broadcast_best_path();
 		return 1;
-	} else if (sender == best) {
+	} else if (sender == best || (g_np.bpn != &max_node && best == &max_node)) {
 		/* Neighbor updated its metrics. Broadcast changes. */
 		g_np.bpn = best;
 		broadcast_best_path();
@@ -536,8 +567,30 @@ static void reset_system_packet_handler() {
 
 }
 
+/* Received packets from multicast / unicast (whose packets are sent with
+ * ec_multicast / ec_unicast) */
+static void ec_mc_uc_recv(struct ec *c, const rimeaddr_t *originator, 
+		const rimeaddr_t *sender, uint8_t hops, uint8_t seqno, 
+		const void *data, uint8_t data_len) {
+
+	const struct sensor_packet *p = (struct sensor_packet*)data;
+
+	/* ignore every other packet if in reset mode */
+	switch(p->type) {
+		case IM_YOUR_NEW_NEIGHBOR:
+			LOG("IM_YOUR_NEW_NEIGHBOR RECV: %d.%d\n", 
+					originator->u8[0], originator->u8[1]);
+			neighbors_add(&g_np.ns, originator);
+			break;
+		default:
+			TRACE("ERROR data: ");
+			print_packet_data((uint8_t*)data, data_len);
+			ASSERT(0);
+	}
+}
+
 /* Received packets from everyone (whose packets are sent with
- * ec_async_broadcast) */
+ * ec_broadcast) */
 static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator, 
 		const rimeaddr_t *sender, uint8_t hops, uint8_t seqno, 
 		const void *data, uint8_t data_len) {
@@ -652,17 +705,6 @@ static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator,
 	}
 }
 
-static void
-print_packet_data(const uint8_t *hdr, int len)
-{
-  int i;
-
-  for(i = 0; i < len; ++i) {
-    LOG(" (0x%0x), ", hdr[i]);
-  }
-
-  LOG("\n");
-}
 
 /* Received packets from neighbors only */
 static void ec_neighbors_recv(struct ec *c, const rimeaddr_t *originator, 
@@ -854,7 +896,7 @@ int abrupt_metric_change_poll(metric_t *metric) {
 	return 0;
 }
 
-const static struct ec_callbacks ec_cb = {ec_broadcasts_recv, 
+const static struct ec_callbacks ec_cb = {ec_broadcasts_recv, ec_mc_uc_recv,
 	ec_neighbors_recv, ec_timesynch_recv, ec_mesh_recv};
 
 PROCESS(fire_process, "EmergencyWSN");
@@ -959,6 +1001,27 @@ PROCESS_THREAD(fire_process, ev, data) {
 						coordinate_node.y[0], 
 						coordinate_node.y[1],
 						g_np.state.is_exit_node);
+		//	} else if(strcmp(data, "send1") == 0) {
+		//		struct sensor_packet sp = {IM_YOUR_NEW_NEIGHBOR};
+		//		rimeaddr_t id1 = { {1,0} };
+		//		ec_reliable_unicast(&g_np.c,&id1, &rimeaddr_node_addr,
+		//				&rimeaddr_node_addr, 0, g_np.seqno++, &sp, sizeof(struct
+		//					sensor_packet));
+		//	} else if(strcmp(data, "send2") == 0) {
+		//		struct sensor_packet sp = {IM_YOUR_NEW_NEIGHBOR};
+		//		struct neighbors ns;
+		//		neighbors_init(&ns);
+		//		{
+		//			rimeaddr_t id = { {1,0} };
+		//			neighbors_add(&ns, &id);
+		//		}
+		//		{
+		//			rimeaddr_t id = { {2,0} };
+		//			neighbors_add(&ns, &id);
+		//		}
+		//		ec_reliable_multicast(&g_np.c,&ns, &rimeaddr_node_addr,
+		//				&rimeaddr_node_addr, 0, g_np.seqno++, &sp, sizeof(struct
+		//					sensor_packet));
 			} else if(strcmp(data, "sink") == 0) {
 				uint8_t tmp[SETUP_PACKET_SIZE+1*sizeof(rimeaddr_t)] = {0};
 				struct setup_packet *sp = (struct setup_packet*)tmp;

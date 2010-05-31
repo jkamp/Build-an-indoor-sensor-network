@@ -12,12 +12,16 @@
 #include <stddef.h> /* For offsetof */
 
 #define MAX_TIMES_SENT 5
+#define MAX_TIMES_SENT_MESH 10
 
 #define FAST_TRANSMIT (CLOCK_SECOND+random_rand()%(2*CLOCK_SECOND))
 #define FAST_TRANSMIT_ACK (random_rand()%CLOCK_SECOND)
 
+#define MESH_TRANSMIT (CLOCK_SECOND+random_rand()%(5*CLOCK_SECOND))
+
 #define RETRANSMIT_NEIGHBOR_DATA (6*CLOCK_SECOND)
-#define RETRANSMIT_MESH_DATA (5*CLOCK_SECOND)
+#define RETRANSMIT_MULTICAST_UNICAST_DATA (6*CLOCK_SECOND)
+//#define RETRANSMIT_MESH_DATA (*CLOCK_SECOND)
 
 #define TIMESYNCH_LEADER_UPDATE (30*CLOCK_SECOND)
 #define TIMESYNCH_LEADER_TIMEOUT (60*CLOCK_SECOND)
@@ -26,8 +30,10 @@ enum {
 	MSG_TYPE_NEIGHBOR_ACK = PACKET_BUFFER_TYPE_ZERO,
 	MSG_TYPE_NEIGHBOR_DATA = PACKET_BUFFER_TYPE_ZERO+1,
 	MSG_TYPE_BROADCAST_DATA = PACKET_BUFFER_TYPE_ZERO+2,
-	MSG_TYPE_TIMESYNCH_DATA = PACKET_BUFFER_TYPE_ZERO+3,
-	MSG_TYPE_MESH_DATA = PACKET_BUFFER_TYPE_ZERO+4
+	MSG_TYPE_MULTICAST_UNICAST_ACK = PACKET_BUFFER_TYPE_ZERO+3,
+	MSG_TYPE_MULTICAST_UNICAST_DATA = PACKET_BUFFER_TYPE_ZERO+4,
+	MSG_TYPE_TIMESYNCH_DATA = PACKET_BUFFER_TYPE_ZERO+5,
+	MSG_TYPE_MESH_DATA = PACKET_BUFFER_TYPE_ZERO+6
 };
 
 static void
@@ -42,6 +48,7 @@ print_packet_data(const uint8_t *hdr, int len)
   LOG("\n");
 }
 
+
 static void send_neighbor_data(void *cptr) {
 	struct ec *c = (struct ec*)cptr;
 	struct buffered_packet *bp =
@@ -51,7 +58,7 @@ static void send_neighbor_data(void *cptr) {
 		const struct packet *p = (struct packet*)
 			packet_buffer_get_packet(bp);
 
-		while (packet_buffer_times_sent(bp) >= MAX_TIMES_SENT) {
+		while (packet_buffer_times_sent(bp) >= MAX_TIMES_SENT_MESH) {
 			rimeaddr_t *neighbor = packet_buffer_unacked_neighbors_begin(bp);
 			LOG("Packet has been sent too many times without ACKs, neighbor "
 					"presumed dead. Dropping packet from further sending.\n");
@@ -182,6 +189,105 @@ static void send_neighbor_ack(void* cptr) {
 	}
 }
 
+static void send_multicast_unicast_ack(void* cptr) {
+	struct ec *c = (struct ec*)cptr;
+	struct buffered_packet *bp =
+		packet_buffer_get_first_packet_from_type(&c->sq,
+				MSG_TYPE_MULTICAST_UNICAST_ACK);
+	if (bp != NULL) {
+		const struct unicast_packet *p = (struct unicast_packet*)
+			packet_buffer_get_packet(bp);
+		LOG("[MC/UC ACK SEND]: ");
+		DEBUG_UNICAST_PACKET(p);
+		packetbuf_clear();
+		packetbuf_set_datalen(UNICAST_PACKET_HDR_SIZE);
+		memcpy(packetbuf_dataptr(), p, UNICAST_PACKET_HDR_SIZE);
+
+		if (abc_send(&c->broadcast_conn) == 0) {
+			LOG("ERROR: ACK packet collision.\n");
+			ctimer_set(&c->multicast_unicast_ack_timer,
+					FAST_TRANSMIT_ACK,
+					send_multicast_unicast_ack, c);
+		} else {
+			packet_buffer_free(&c->sq, bp);
+			bp = packet_buffer_get_first_packet_from_type(&c->sq,
+					MSG_TYPE_MULTICAST_UNICAST_ACK);
+			if (bp != NULL) {
+				ctimer_set(&c->multicast_unicast_ack_timer,
+						FAST_TRANSMIT_ACK,
+						send_multicast_unicast_ack, c);
+			}
+		}
+	}
+}
+
+static void send_multicast_unicast_data(void *cptr) {
+	struct ec *c = (struct ec*)cptr;
+	struct buffered_packet *bp =
+		packet_buffer_get_first_packet_from_type(&c->sq,
+				MSG_TYPE_MULTICAST_UNICAST_DATA);
+	if (bp != NULL) {
+		const struct broadcast_packet *p = (struct broadcast_packet*)
+			packet_buffer_get_packet(bp);
+
+		uint8_t nsize = packet_buffer_num_unacked_neighbors(bp);
+		ASSERT(nsize != 0);
+
+		packetbuf_clear();
+
+		LOG("[MC/UC DATA SEND]: ");
+		DEBUG_PACKET(p);
+		LOG("Packet data: ");
+		print_packet_data(p->data, packet_buffer_data_len(bp));
+
+		if (nsize > 1) {
+			/* make multicast */
+			struct multicast_packet *mp = (struct multicast_packet*)
+				packetbuf_dataptr();
+			rimeaddr_t *addr = (rimeaddr_t*)mp->data;
+			const rimeaddr_t *i = packet_buffer_unacked_neighbors_begin(bp);
+
+			packetbuf_set_datalen(MULTICAST_PACKET_HDR_SIZE+
+					nsize*sizeof(rimeaddr_t)+
+					packet_buffer_data_len(bp));
+
+			init_multicast_packet(mp, 0, p->hdr.hops,
+					&p->hdr.originator, &p->hdr.sender, p->hdr.seqno,
+					nsize);
+
+			for(; i != NULL; i = packet_buffer_unacked_neighbors_next(bp)) {
+				rimeaddr_copy(addr++, i);
+			}
+			memcpy(addr, p->data, packet_buffer_data_len(bp));
+		} else {
+			/* make unicast */
+			struct unicast_packet *up = (struct unicast_packet*)
+				packetbuf_dataptr();
+			const rimeaddr_t *addr = packet_buffer_unacked_neighbors_begin(bp);
+			ASSERT(addr != NULL);
+
+			packetbuf_set_datalen(UNICAST_PACKET_HDR_SIZE+
+					packet_buffer_data_len(bp));
+
+			init_unicast_packet(up, 0, p->hdr.hops, &p->hdr.originator,
+					&p->hdr.sender, p->hdr.seqno, addr);
+			memcpy(up->data, p->data, packet_buffer_data_len(bp));
+		}
+
+		if (abc_send(&c->broadcast_conn) == 0) {
+			LOG("ERROR: DATA packet collision.\n");
+			/* fast retransmit */
+			ctimer_set(&c->multicast_unicast_data_timer,
+					FAST_TRANSMIT, send_multicast_unicast_data, c);
+		} else {
+			packet_buffer_increment_times_sent(bp);
+			ctimer_set(&c->multicast_unicast_data_timer,
+					RETRANSMIT_MULTICAST_UNICAST_DATA, 
+					send_multicast_unicast_data, c);
+		}
+	}
+}
+
 static void send_broadcast_data(void* cptr) {
 	struct ec *c = (struct ec*)cptr;
 	struct buffered_packet *bp =
@@ -288,8 +394,9 @@ static void send_mesh_data(void* cptr) {
 
 			packet_buffer_increment_times_sent(bp);
 			if(!mesh_send(&c->meshdata_conn, &p->destination)) {
-				ctimer_set(&c->mesh_data_timer,
-						RETRANSMIT_MESH_DATA, send_mesh_data, c);
+				//ctimer_set(&c->mesh_data_timer,
+				//		RETRANSMIT_MESH_DATA, send_mesh_data, c);
+				LOG("Mesh could not be directly sent\n");
 			}
 		}
 	}
@@ -445,22 +552,138 @@ static void neighbor_recv(struct abc_conn *bc) {
 static void broadcast_recv(struct abc_conn *bc) {
 	const struct packet *p = (struct packet*)packetbuf_dataptr();
 	struct ec *c = (struct ec*)((char*)bc-offsetof(struct ec, broadcast_conn));
+	const uint8_t *data = NULL;
 	uint8_t data_len = packetbuf_datalen() - BROADCAST_PACKET_HDR_SIZE;
+	int8_t is_for_us = 0;
+	int8_t mc = 0;
+	int8_t uc = 0;
 
-	struct slim_packet *sp = (struct slim_packet*)
-		queue_buffer_find(&c->dq, p, slim_packet_to_packet_cmp);
-	if (sp != NULL) {
-		/* dupe packet */
-		LOG("[BROADCAST RECV DUPE] ");
-		DEBUG_PACKET(p);
+	TRACE("[BC/MC/UC RECV] ");
+	DEBUG_PACKET(p);
 
+	switch(PACKET_TYPE(p)) {
+		case BROADCAST:
+			is_for_us = 1;
+			data = p->data;
+			data_len = packetbuf_datalen() - BROADCAST_PACKET_HDR_SIZE;
+			break;
+		case MULTICAST:
+			{
+				const struct multicast_packet *mp = (struct multicast_packet*)p;
+				rimeaddr_t *to = (rimeaddr_t*)mp->data;
+				int i;
+				for (i = 0; i < mp->num_ids; ++i) {
+					LOG("Multicast to: %d.%d\n", to->u8[0],
+							to->u8[1]);
+					if (rimeaddr_cmp(to++, &rimeaddr_node_addr)) {
+						uint8_t ids_size = sizeof(rimeaddr_t)*mp->num_ids;
+						data = mp->data + ids_size;
+						data_len = packetbuf_datalen() -
+							MULTICAST_PACKET_HDR_SIZE - ids_size;
+						is_for_us = 1;
+						mc = 1;
+						break;
+					}
+				}
+			}
+			break;
+		case UNICAST:
+			{
+				const struct unicast_packet *up = (struct unicast_packet*)p;
+				LOG("Unicast packet: ");
+				DEBUG_UNICAST_PACKET(up);
+				if (rimeaddr_cmp(&up->destination, &rimeaddr_node_addr)) {
+					is_for_us = 1;
+					data = up->data;
+					data_len = packetbuf_datalen() - UNICAST_PACKET_HDR_SIZE;
+					uc = 1;
+				}
+			}
+			break;
+		default:
+			ASSERT(0);
+	}
+
+
+	if (is_for_us) {
+		TRACE("data: ");
+		print_packet_data(data, data_len);
+		if (IS_PACKET_FLAG_SET(p, ACK)) {
+			struct buffered_packet *bp;
+
+			LOG("[MULTICAST_UNICAST ACK RECV] ");
+			DEBUG_PACKET(p);
+
+			bp = packet_buffer_find_buffered_packet(&c->sq, p, originator_seqno_cmp);
+
+			if (bp != NULL) {
+				packet_buffer_neighbor_acked(bp, &p->hdr.sender);
+				if (packet_buffer_all_neighbors_acked(bp)) {
+					LOG("Every multicast/unicast neighbor acked packet.\n");
+					packet_buffer_free(&c->sq, bp);
+					/* send next neighbor packet */
+					ctimer_set(&c->multicast_unicast_data_timer,
+							FAST_TRANSMIT, send_multicast_unicast_data, c);
+				}
+			} else {
+				LOG("Recived ack for non-sent packet\n");
+			}
+		} else {
+			/* Data packet */
+			int8_t send_ack = 1;
+			int8_t is_dupe = 0;
+
+			struct slim_packet *sp = (struct slim_packet*)
+				queue_buffer_find(&c->dq, p, slim_packet_to_packet_cmp);
+			if (sp != NULL) {
+				/* dupe packet */
+				LOG("[BC/MC/UC DATA RECV DUPE] ");
+				DEBUG_PACKET(p);
+				is_dupe = 1;
+
+			} else {
+				LOG("[BC/MC/UC DATA RECV] ");
+				DEBUG_PACKET(p);
+			}
+
+			if (!is_dupe) {
+				/* check if we have atleast room for three packets (one ack,
+				 * one forward request from user, one data packet from user) */
+				if(packet_buffer_has_room_for_packets(&c->sq, 3)) {
+					if (mc || uc) {
+						c->cb->multicast_unicast_recv(c, &p->hdr.originator, &p->hdr.sender,
+								p->hdr.hops, p->hdr.seqno, data, data_len);
+					} else {
+						/* broadcast */
+						c->cb->broadcast_recv(c, &p->hdr.originator, &p->hdr.sender,
+								p->hdr.hops, p->hdr.seqno, data, data_len);
+					}
+					store_packet_for_dupe_checks(c, p);
+				} else {
+					LOG("Packet buffer overflowing. Dropping packet\n");
+					send_ack = 0;
+				}
+			}
+
+			if (send_ack && (mc || uc)) {
+				struct unicast_packet ap;
+				init_unicast_packet(&ap, ACK, 0, &p->hdr.originator,
+						&rimeaddr_node_addr, p->hdr.seqno, &p->hdr.sender);
+				if (packet_buffer_find_buffered_packet(&c->sq,
+							(struct packet*)&ap, unicast_packet_cmp) == NULL) {
+					LOG("Making ACK\n");
+					packet_buffer_unicast_packet(&c->sq, &ap, NULL, 0, NULL,
+							MSG_TYPE_MULTICAST_UNICAST_ACK);
+					ctimer_set(&c->multicast_unicast_ack_timer,
+							FAST_TRANSMIT_ACK, send_multicast_unicast_ack, c);
+				} else {
+					LOG("Found ack in sending queue already\n");
+				}
+			}
+		}
 	} else {
-		LOG("[BROADCAST DATA RECV] ");
+		LOG("NOT FOR US: ");
 		DEBUG_PACKET(p);
-		print_packet_data((uint8_t*)p->data, data_len);
-		c->cb->broadcast_recv(c, &p->hdr.originator, &p->hdr.sender,
-				p->hdr.hops, p->hdr.seqno, p->data, data_len);
-		store_packet_for_dupe_checks(c, p);
 	}
 }
 
@@ -491,16 +714,56 @@ void ec_broadcast(struct ec *c, const rimeaddr_t *originator,
 
 	init_broadcast_packet(&bp, 0, hops, originator, sender, seqno);
 
-	LOG("1\n");
 	packet_buffer_broadcast_packet(&c->sq, &bp, data, data_len, c->ns,
 			MSG_TYPE_BROADCAST_DATA);
-	LOG("2\n");
 
 	store_packet_for_dupe_checks(c, (struct packet*)&bp);
 
 	if (ctimer_expired(&c->broadcast_data_timer)) {
 		ctimer_set(&c->broadcast_data_timer,
 				FAST_TRANSMIT, send_broadcast_data, c);
+	}
+}
+
+void ec_reliable_multicast(struct ec *c, const struct neighbors *receivers,
+		const rimeaddr_t *originator, const rimeaddr_t *sender, uint8_t hops,
+		uint8_t seqno, const void *data, uint8_t data_len) {
+
+	struct broadcast_packet bp;
+
+	init_broadcast_packet(&bp, 0, hops, originator, sender, seqno);
+
+	packet_buffer_broadcast_packet(&c->sq, &bp, data, data_len, receivers,
+			MSG_TYPE_MULTICAST_UNICAST_DATA);
+
+	store_packet_for_dupe_checks(c, (struct packet*)&bp);
+
+	if (ctimer_expired(&c->multicast_unicast_data_timer)) {
+		ctimer_set(&c->multicast_unicast_data_timer,
+				FAST_TRANSMIT, send_multicast_unicast_data, c);
+	}
+}
+
+void ec_reliable_unicast(struct ec *c, const rimeaddr_t *destination, const
+		rimeaddr_t *originator, const rimeaddr_t *sender, uint8_t hops, uint8_t
+		seqno, const void *data, uint8_t data_len) {
+
+	struct broadcast_packet bp;
+
+	struct neighbors ns;
+	neighbors_init(&ns);
+	neighbors_add(&ns, destination);
+
+	init_broadcast_packet(&bp, 0, hops, originator, sender, seqno);
+
+	packet_buffer_broadcast_packet(&c->sq, &bp, data, data_len, &ns,
+			MSG_TYPE_MULTICAST_UNICAST_DATA);
+
+	store_packet_for_dupe_checks(c, (struct packet*)&bp);
+
+	if (ctimer_expired(&c->multicast_unicast_data_timer)) {
+		ctimer_set(&c->multicast_unicast_data_timer,
+				FAST_TRANSMIT, send_multicast_unicast_data, c);
 	}
 }
 
@@ -517,7 +780,7 @@ void ec_mesh(struct ec *c, const rimeaddr_t *destination, uint8_t seqno,
 
 	if (ctimer_expired(&c->mesh_data_timer)) {
 		ctimer_set(&c->mesh_data_timer,
-				FAST_TRANSMIT, send_mesh_data, c);
+				MESH_TRANSMIT, send_mesh_data, c);
 	}
 }
 

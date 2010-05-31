@@ -9,7 +9,7 @@
 /* XXX: change name to packet_send_buffer or something */
 
 #define PACKET_BUFFER_TYPE_ZERO 0
-#define PACKET_BUFFER_MAX_TYPES 5
+#define PACKET_BUFFER_MAX_TYPES 7
 
 #define BUFFERED_PACKET_HDR_SIZE (sizeof(struct buffered_packet)-sizeof(uint8_t))
 
@@ -25,7 +25,7 @@
 struct buffered_packet {
 	struct buffered_packet *next;
 	/* Neighbors who are still to ack the packet */
-	QUEUE_BUFFER(unacked_ns, sizeof(rimeaddr_t*), MAX_NEIGHBORS);
+	QUEUE_BUFFER(unacked_ns, sizeof(rimeaddr_t), MAX_NEIGHBORS);
 	uint8_t times_sent; 
 	uint8_t data_len; 
 	/*void (*send_fn)(void *ptr);*/

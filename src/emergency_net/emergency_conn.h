@@ -26,6 +26,7 @@ typedef void (*ec_callback_mesh_t)(struct ec *c, const rimeaddr_t *originator,
 
 struct ec_callbacks {
 	ec_callback_data_t broadcast_recv;
+	ec_callback_data_t multicast_unicast_recv;
 	ec_callback_data_t neighbor_recv;
 	ec_callback_timesynch_t timesynch;
 	ec_callback_mesh_t mesh;
@@ -40,6 +41,8 @@ struct ec {
 	struct ctimer neighbor_ack_timer;
 	struct ctimer neighbor_data_timer;
 	struct ctimer broadcast_data_timer;
+	struct ctimer multicast_unicast_data_timer;
+	struct ctimer multicast_unicast_ack_timer;
 	struct ctimer timesynch_data_timer;
 	struct ctimer mesh_data_timer;
 
@@ -74,6 +77,14 @@ void ec_reliable_broadcast_ns(struct ec *c, const rimeaddr_t *originator,
 void ec_broadcast(struct ec *c, const rimeaddr_t *originator, 
 		const rimeaddr_t *sender, uint8_t hops, uint8_t seqno, const void *data,
 		uint8_t data_len);
+
+void ec_reliable_multicast(struct ec *c, const struct neighbors *receivers, const
+		rimeaddr_t *originator, const rimeaddr_t *sender, uint8_t hops, uint8_t
+		seqno, const void *data, uint8_t data_len);
+
+void ec_reliable_unicast(struct ec *c, const rimeaddr_t *destination, const rimeaddr_t
+		*originator, const rimeaddr_t *sender, uint8_t hops, uint8_t seqno,
+		const void *data, uint8_t data_len);
 
 void ec_mesh(struct ec *c, const rimeaddr_t *destination,
 		uint8_t seqno, const void *data, uint8_t data_len);
