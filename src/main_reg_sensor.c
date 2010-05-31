@@ -329,21 +329,22 @@ void setup_parse(const struct setup_packet *sp, int is_from_flash) {
 	ec_set_neighbors(&g_np.c, &g_np.ns);
 }
 
-static inline metric_t
-weigh_metrics(distance_t distance) {
-	metric_t metric16;
-	uint8_to_uint16(g_np.current_sensors_metric, &metric16);
-	if (g_np.state.is_burning) {
-		metric16 *= 10;
-	}
-
-	return 100*distance + metric16;
-}
-
 static inline metric_t 
 weigh_distance(distance_t distance) {
-	return 100*distance;
+	return distance;
 }
+
+static inline metric_t
+weigh_metrics(distance_t distance) {
+	metric_t sens_16;
+	uint8_to_uint16(g_np.current_sensors_metric, &sens_16);
+	if (g_np.state.is_burning) {
+		return 1000+weigh_distance(distance)+sens_16;
+	}
+
+	return weigh_distance(distance);
+}
+
 
 static const struct neighbor_node*
 find_best_exit_path_neighbor() {
