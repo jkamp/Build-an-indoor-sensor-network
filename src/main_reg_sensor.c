@@ -530,11 +530,8 @@ static void initialize_best_path_packet_handler() {
 
 	if (g_np.state.is_reset_mode) {
 		g_np.state.is_reset_mode = 0;
-		leds_off(LEDS_ALL);
-		if(g_np.state.is_exit_node) {
-			leds_green(1);
-		}
 	}
+
 	if(g_np.state.is_exit_node) {
 		ASSERT(!g_np.state.has_sent_node_info);
 		update_bpn_and_send_node_info();
@@ -575,7 +572,14 @@ static void reset_node_properties() {
 }
 
 static void reset_system_packet_handler() {
-	reset_node_properties();
+	{
+		char buf[SETUP_PACKET_SIZE+MAX_NEIGHBORS*sizeof(rimeaddr_t)] = {0};
+		struct setup_packet *sp = (struct setup_packet*)buf;
+		if (node_properties_restore(buf, sizeof(buf))) {
+			LOG("RELOADING INFO FROM FLASH\n");
+			setup_parse(sp, 1);
+		}
+	}
 	g_np.state.is_reset_mode = 1;
 }
 
@@ -955,6 +959,12 @@ PROCESS_THREAD(fire_process, ev, data) {
 				struct sensor_packet sp = {INITIALIZE_BEST_PATHS_PACKET};
 				LOG("Initing\n");
 				ec_broadcasts_recv(NULL, &addr, &addr, 0, 0, &sp, sizeof(struct sensor_packet));
+			} else if(strcmp(data, "send_init_packet") == 0) {
+				struct sensor_packet sp = {INITIALIZE_BEST_PATHS_PACKET};
+				LOG("Sending INITIALIZE_BEST_PATHS_PACKET\n");
+				ec_broadcast(&g_np.c, &rimeaddr_node_addr,
+						&rimeaddr_node_addr, 0, g_np.seqno++, &sp,
+						sizeof(struct sensor_packet));
 			} else if(strcmp(data, "blink") == 0) {
 				leds_blink();
 		//	} else if(strcmp(data, "burn") == 0) {
