@@ -23,7 +23,7 @@ struct neighbor_node {
 	struct coordinate coord;
 	uint8_t distance[2]; /* to neighbor. So we dont have to calculate it every time */
 	struct neighbor_node_best_path bp;
-	uint8_t warnings; /* issued when the neighbor is not responding */
+	uint8_t has_sent_keep_alive; /* issued when the neighbor is not responding */
 };
 
 extern const struct neighbor_node_best_path neighbor_node_best_path_max;
@@ -57,8 +57,24 @@ static
 void neighbor_node_set_best_path(struct neighbor_node *nn, 
 		const struct neighbor_node_best_path *bp);
 
+static
+int neighbor_node_has_sent_keep_alive(const struct neighbor_node *nn);
+
+static
+void neighbor_node_set_has_sent_keep_alive(struct neighbor_node *nn, int8_t i);
+
 
 /* inline definitions */
+
+static inline
+void neighbor_node_set_has_sent_keep_alive(struct neighbor_node *nn, int8_t i) {
+	nn->has_sent_keep_alive = i;
+}
+
+static inline
+int neighbor_node_has_sent_keep_alive(const struct neighbor_node *nn) {
+	return nn->has_sent_keep_alive;
+}
 
 static inline
 const rimeaddr_t* neighbor_node_addr(const struct neighbor_node *nn) {

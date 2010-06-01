@@ -29,7 +29,7 @@
 #define BLINKING_SEQUENCE_SWITCH_TIME (4*1024)
 #define MAX_FIRE_COORDINATES 10
 
-#define MAX_NUMBER_OF_HOPS_TO_EXIT 10
+#define MAX_NUMBER_OF_HOPS_TO_EXIT 7
 
 #define MAX_ALLOWED_METRIC 1000
 #define LIGHT_EMERGENCY_THRESHOLD 400
@@ -70,6 +70,8 @@ enum {
 	INITIALIZE_BEST_PATHS_PACKET,
 
 	IM_YOUR_NEW_NEIGHBOR,
+
+	KEEP_ALIVE_NEIGHBOR,
 
 	/* Sent when INITIALIZE_BEST_PATHS_PACKET is sent for exit nodes and sent
 	 * when regular nodes get NODE_INFO_PACKET from other nodes (not only exit
@@ -755,6 +757,15 @@ static void ec_neighbors_recv(struct ec *c, const rimeaddr_t *originator,
 
 			initialize_best_path_packet_handler();
 			break;
+		case KEEP_ALIVE_NEIGHBOR:
+			{
+				struct neighbor_node *nn =
+					neighbors_find_neighbor_node(&g_np.ns, sender);
+				LOG("RECV KEEP_ALIVE_NEIGHBOR\n");
+				ASSERT(nn != NULL);
+				neighbor_node_set_has_sent_keep_alive(nn, 1);
+			}
+			break;
 		case NODE_INFO_PACKET:
 			{
 				const struct node_info_packet *nip = (struct node_info_packet*)p;
@@ -905,6 +916,8 @@ AUTOSTART_PROCESSES(&fire_process);
 PROCESS_THREAD(fire_process, ev, data) {
 
 	static struct etimer emergency_check_timer;
+	static struct etimer keepalive_send_timer;
+	static struct etimer keepalive_check_timer;
 	PROCESS_EXITHANDLER(ec_close(&g_np.c));
 
 	PROCESS_BEGIN();
@@ -925,9 +938,11 @@ PROCESS_THREAD(fire_process, ev, data) {
 	}
 
 	SENSORS_ACTIVATE(button_sensor);
+	etimer_set(&emergency_check_timer, CLOCK_SECOND * 1);
+	etimer_set(&keepalive_send_timer, CLOCK_SECOND * 20);
+	etimer_set(&keepalive_check_timer, CLOCK_SECOND * 80);
 
 	while(1) {
-		etimer_set(&emergency_check_timer, CLOCK_SECOND * 1);
 		PROCESS_WAIT_EVENT();
 
 		if (ev == sensors_event) {
@@ -1001,6 +1016,27 @@ PROCESS_THREAD(fire_process, ev, data) {
 						coordinate_node.y[0], 
 						coordinate_node.y[1],
 						g_np.state.is_exit_node);
+
+				LOG("Neighbors:\n");
+				{
+					const struct neighbor_node *nn = neighbors_begin(&g_np.ns);
+					for (; nn != NULL;
+							nn = neighbors_next(&g_np.ns)) {
+						LOG("neighbor: %d.%d, points_to: (%d.%d), coord: (%d.%d,%d.%d), distance: %d, "
+								"hops: %d, metric: %u\n",
+								neighbor_node_addr(nn)->u8[0], 
+								neighbor_node_addr(nn)->u8[1],
+								nn->bp.points_to.u8[0],
+								nn->bp.points_to.u8[1],
+								neighbor_node_coord(nn)->x[0], 
+								neighbor_node_coord(nn)->x[1], 
+								neighbor_node_coord(nn)->y[0],
+								neighbor_node_coord(nn)->y[1],
+								neighbor_node_distance(nn),
+								neighbor_node_hops(nn),
+								neighbor_node_metric(nn));
+					}
+				}
 		//	} else if(strcmp(data, "send1") == 0) {
 		//		struct sensor_packet sp = {IM_YOUR_NEW_NEIGHBOR};
 		//		rimeaddr_t id1 = { {1,0} };
@@ -1128,7 +1164,9 @@ PROCESS_THREAD(fire_process, ev, data) {
 			} else {
 				LOG("unkown command\n");
 			}
-		} else if(etimer_expired(&emergency_check_timer)) {
+		}
+
+		if(etimer_expired(&emergency_check_timer)) {
 			if(!g_np.state.is_awaiting_setup_packet || !g_np.state.is_sink_node) {
 				static metric_t current_metric;
 				if (abrupt_metric_change_poll(&current_metric)) {
@@ -1170,6 +1208,69 @@ PROCESS_THREAD(fire_process, ev, data) {
 					}
 				}
 			}
+			etimer_set(&emergency_check_timer, CLOCK_SECOND * 1);
+		}
+
+		if(etimer_expired(&keepalive_send_timer)) {
+			if (g_np.state.is_blinking) {
+				if (neighbors_size(&g_np.ns) > 0) {
+					LOG("NEIGHBOR SIZE: %d\n", neighbors_size(&g_np.ns));
+					struct sensor_packet sp = {KEEP_ALIVE_NEIGHBOR};
+					ec_reliable_broadcast_ns(&g_np.c, &rimeaddr_node_addr, &rimeaddr_node_addr,
+							0, g_np.seqno++, &sp, sizeof(struct sensor_packet));
+				}
+			}
+			etimer_set(&keepalive_send_timer, CLOCK_SECOND * 20);
+		}
+
+		if(etimer_expired(&keepalive_check_timer)) {
+			if (g_np.state.is_blinking) {
+				struct neighbor_node *nn = neighbors_begin(&g_np.ns);
+				int need_broadcast_new_path = 0;
+				LOG("-----------------------\n");
+				for (; nn != NULL; nn = neighbors_next(&g_np.ns)) {
+					if (!neighbor_node_has_sent_keep_alive(nn)) {
+						LOG("Neighbor did not keep-alive: %d.%d, points_to: (%d.%d), coord: (%d.%d,%d.%d), distance: %d, "
+								"hops: %d, metric: %u\n",
+								neighbor_node_addr(nn)->u8[0], 
+								neighbor_node_addr(nn)->u8[1],
+								nn->bp.points_to.u8[0],
+								nn->bp.points_to.u8[1],
+								neighbor_node_coord(nn)->x[0], 
+								neighbor_node_coord(nn)->x[1], 
+								neighbor_node_coord(nn)->y[0],
+								neighbor_node_coord(nn)->y[1],
+								neighbor_node_distance(nn),
+								neighbor_node_hops(nn),
+								neighbor_node_metric(nn));
+						//neighbor_node_set_best_path(&max_node, &neighbor_node_best_path_max);
+						if (nn == g_np.bpn) {
+							g_np.bpn = NULL;
+						}
+						neighbors_remove(&g_np.ns, neighbor_node_addr(nn));
+						nn = neighbors_begin(&g_np.ns);
+						if (nn == NULL) {
+							break;
+						} else {
+							need_broadcast_new_path = 1; 
+						}
+					}
+				}
+				LOG("-----------------------\n");
+
+				nn = neighbors_begin(&g_np.ns);
+				for (; nn != NULL; nn = neighbors_next(&g_np.ns)) {
+					neighbor_node_set_has_sent_keep_alive(nn, 0);
+				}
+
+				if (need_broadcast_new_path) {
+					if(update_bpn_and_broadcast_new_path_if_changed(NULL)) {
+						blinking_update();
+					}
+				}
+			}
+
+			etimer_set(&keepalive_check_timer, CLOCK_SECOND * 80);
 		}
 	}
 

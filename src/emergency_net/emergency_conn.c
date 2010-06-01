@@ -691,18 +691,20 @@ void ec_reliable_broadcast_ns(struct ec *c, const rimeaddr_t *originator,
 		const rimeaddr_t *sender, uint8_t hops, uint8_t seqno, const void *data,
 		uint8_t data_len) {
 
-	struct broadcast_packet bp;
+	if (neighbors_size(c->ns) > 0) {
+		struct broadcast_packet bp;
 
-	init_broadcast_packet(&bp, 0, hops, originator, sender, seqno);
+		init_broadcast_packet(&bp, 0, hops, originator, sender, seqno);
 
-	packet_buffer_broadcast_packet(&c->sq, &bp, data, data_len, c->ns,
-			MSG_TYPE_NEIGHBOR_DATA);
+		packet_buffer_broadcast_packet(&c->sq, &bp, data, data_len, c->ns,
+				MSG_TYPE_NEIGHBOR_DATA);
 
-	store_packet_for_dupe_checks(c, (struct packet*)&bp);
+		store_packet_for_dupe_checks(c, (struct packet*)&bp);
 
-	if (ctimer_expired(&c->neighbor_data_timer)) {
-		ctimer_set(&c->neighbor_data_timer,
-				FAST_TRANSMIT, send_neighbor_data, c);
+		if (ctimer_expired(&c->neighbor_data_timer)) {
+			ctimer_set(&c->neighbor_data_timer,
+					FAST_TRANSMIT, send_neighbor_data, c);
+		}
 	}
 }
 
