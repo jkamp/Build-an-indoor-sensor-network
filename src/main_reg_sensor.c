@@ -542,31 +542,41 @@ static void initialize_best_path_packet_handler() {
 	}
 }
 
-static void reset_system_packet_handler() {
-	struct neighbor_node *nn = 
-		(struct neighbor_node*)neighbors_begin(&g_np.ns);
-	leds_on(LEDS_ALL);
+static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator, 
+		const rimeaddr_t *sender, uint8_t hops, uint8_t seqno, 
+		const void *data, uint8_t data_len);
+static void ec_mc_uc_recv(struct ec *c, const rimeaddr_t *originator, 
+		const rimeaddr_t *sender, uint8_t hops, uint8_t seqno, 
+		const void *data, uint8_t data_len);
+static void ec_neighbors_recv(struct ec *c, const rimeaddr_t *originator, 
+		const rimeaddr_t *sender, uint8_t hops, uint8_t seqno, 
+		const void *data, uint8_t data_len);
+static void ec_timesynch_recv(struct ec *c);
+static void ec_mesh_recv(struct ec *c, const rimeaddr_t *originator,
+		uint8_t hops, uint8_t seqno, const void *data, uint8_t data_len);
 
-	for(; nn != NULL; nn = (struct neighbor_node*)neighbors_next(&g_np.ns)) {
-		neighbor_node_set_best_path(nn, &neighbor_node_best_path_max);
-		neighbor_node_set_coordinate(nn, &coordinate_null);
+const static struct ec_callbacks ec_cb = {ec_broadcasts_recv, ec_mc_uc_recv,
+	ec_neighbors_recv, ec_timesynch_recv, ec_mesh_recv};
+
+static void reset_node_properties() {
+	memset(&g_np, 0, sizeof(struct node_properties));
+	neighbors_init(&g_np.ns);
+	QUEUE_BUFFER_INIT_WITH_STRUCT(&g_np, emergency_coords, 
+			sizeof(struct coordinate), MAX_FIRE_COORDINATES);
+	ec_open(&g_np.c, EMERGENCYNET_CHANNEL, &ec_cb);
+	{
+		char buf[SETUP_PACKET_SIZE+MAX_NEIGHBORS*sizeof(rimeaddr_t)] = {0};
+		struct setup_packet *sp = (struct setup_packet*)buf;
+		if (node_properties_restore(buf, sizeof(buf))) {
+			LOG("Found info on flash\n");
+			setup_parse(sp, 1);
+		}
 	}
+}
 
-	g_np.bpn = NULL;
-	g_np.state.is_blinking = 0;
-	g_np.state.is_burning = 0;
-	g_np.state.is_awaiting_setup_packet = 0;
-	/*g_np.state.is_exit_node = 0;*/
-	g_np.state.has_sent_node_info = 0;
+static void reset_system_packet_handler() {
+	reset_node_properties();
 	g_np.state.is_reset_mode = 1;
-	g_np.state.is_sink_node = 0;
-
-
-	queue_buffer_clear(&g_np.emergency_coords);
-	uint16_to_uint8(0, g_np.current_sensors_metric);
-
-	ec_timesynch_off(&g_np.c);
-
 }
 
 /* Received packets from multicast / unicast (whose packets are sent with
@@ -907,8 +917,6 @@ int abrupt_metric_change_poll(metric_t *metric) {
 	return 0;
 }
 
-const static struct ec_callbacks ec_cb = {ec_broadcasts_recv, ec_mc_uc_recv,
-	ec_neighbors_recv, ec_timesynch_recv, ec_mesh_recv};
 
 PROCESS(fire_process, "EmergencyWSN");
 AUTOSTART_PROCESSES(&fire_process);
@@ -921,21 +929,7 @@ PROCESS_THREAD(fire_process, ev, data) {
 	PROCESS_EXITHANDLER(ec_close(&g_np.c));
 
 	PROCESS_BEGIN();
-	memset(&g_np, 0, sizeof(struct node_properties));
-	neighbors_init(&g_np.ns);
-	QUEUE_BUFFER_INIT_WITH_STRUCT(&g_np, emergency_coords, 
-			sizeof(struct coordinate), MAX_FIRE_COORDINATES);
-	ec_open(&g_np.c, EMERGENCYNET_CHANNEL, &ec_cb);
-	{
-//#ifndef EMERGENCY_COOJA_SIMULATION
-		char buf[SETUP_PACKET_SIZE+MAX_NEIGHBORS*sizeof(rimeaddr_t)] = {0};
-		struct setup_packet *sp = (struct setup_packet*)buf;
-		if (node_properties_restore(buf, sizeof(buf))) {
-			LOG("Found info on flash\n");
-			setup_parse(sp, 1);
-		}
-//#endif
-	}
+	reset_node_properties();
 
 	SENSORS_ACTIVATE(button_sensor);
 	etimer_set(&emergency_check_timer, CLOCK_SECOND * 1);
@@ -1064,6 +1058,11 @@ PROCESS_THREAD(fire_process, ev, data) {
 				sp->type = SETUP_PACKET;
 				setup_parse(sp,0);
 				g_np.state.is_sink_node = 1;
+			} else if(strcmp(data, "reset_system_packet") == 0) {
+				struct sensor_packet p;
+				p.type = RESET_SYSTEM_PACKET;
+				ec_broadcast(&g_np.c, &rimeaddr_node_addr, &rimeaddr_node_addr,
+						0, g_np.seqno++, &p, sizeof(struct sensor_packet));
 			} else if(strcmp(data, "extract_report_packet") == 0) {
 				struct sensor_packet p;
 				p.type = EXTRACT_REPORT_PACKET;
