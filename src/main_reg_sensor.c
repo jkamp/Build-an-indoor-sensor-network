@@ -629,6 +629,7 @@ static void ec_broadcasts_recv(struct ec *c, const rimeaddr_t *originator,
 					add_coordinate_as_burning(&ep->source);
 
 					/* forward packet */
+					/* TODO: trickle this */
 					ec_broadcast(&g_np.c, originator, &rimeaddr_node_addr,
 							hops+1, seqno, data, data_len);
 
@@ -1206,6 +1207,9 @@ PROCESS_THREAD(fire_process, ev, data) {
 														 */) {
 						if (g_np.state.is_burning) {
 							/* we're not burning anymore */
+							/* FIXME: this is a faulty assumption, sensor value
+							 * could have increased, but works for demo anyway.
+							 * */
 							LOG("Sensed ANTI emergency\n");
 							set_burning(0);
 							remove_coordinate_as_burning(&coordinate_node);
@@ -1233,6 +1237,10 @@ PROCESS_THREAD(fire_process, ev, data) {
 		}
 
 		if(etimer_expired(&keepalive_check_timer)) {
+			/* XXX: instead of this, we could have a callback which
+			 * ec_reliable_broadcast_ns calls when not able to send i.e.
+			 * keep_alive_packet to neighbors (neighbors did not ack it after x
+			 * tries). */
 			if (g_np.state.is_blinking) {
 				struct neighbor_node *nn = neighbors_begin(&g_np.ns);
 				int need_broadcast_new_path = 0;
